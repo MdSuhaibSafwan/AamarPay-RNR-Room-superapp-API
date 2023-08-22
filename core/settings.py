@@ -1,5 +1,8 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -85,5 +88,10 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+
+RNR_HOSTNAME = "beta.api.rnrrooms.com"
+RNR_BASE_URL = "https://{}".format(RNR_HOSTNAME)
+RNR_API_KEY = os.environ.get("RNR_API_KEY")
+RNR_API_SECRET_KEY = os.environ.get("RNR_API_SECRET_KEY")
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

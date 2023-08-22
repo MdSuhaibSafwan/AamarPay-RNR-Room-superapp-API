@@ -15,9 +15,17 @@ def uuid_without_dash():
 #         return f"< Refresh-Token {self.token}>"
 
 
+class RNRUser(models.Model):
+    username = models.CharField(max_length=256)
+
+    def __str__(self):
+        return "<RNR User %s>" % self.username
+
+
 class RNRAccessToken(models.Model):
     id = models.UUIDField(primary_key=True, unique=True, editable=False, default=uuid_without_dash)
     # rnr_refresh_token = models.ForeignKey(RNRRefreshToken, on_delete=models.CASCADE)
+    rnr_user = models.ForeignKey(RNRUser, on_delete=models.SET_NULL, null=True)
     token = models.CharField(max_length=300, unique=True)
     token_type = models.CharField(max_length=100, null=True)
     expired = models.BooleanField(default=False)

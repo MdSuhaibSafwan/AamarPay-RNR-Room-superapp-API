@@ -1,6 +1,6 @@
 import json
 import requests
-from ..models import RNRUser, RNRAccessToken
+from ..models import RNRAccessToken
 from rest_framework import serializers
 from django.conf import settings
 
@@ -33,12 +33,6 @@ class RNRUserAuthenticationSerializer(serializers.Serializer):
         if r.status_code != 200:
             raise serializers.ValidationError(r.json())
         
-        rnr_user, created = RNRUser.objects.get_or_create(username=validated_data.get("username"))
-
         data = r.json()["data"]
-        rnr_token_obj = RNRAccessToken.objects.create(
-            rnr_user=rnr_user, token=data.get("token"), token_type=data.get("token_type"), 
-            expire_time=data.get("expires_in")
-        )
 
-        return rnr_token_obj
+        return data

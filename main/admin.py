@@ -1,5 +1,4 @@
 from django.contrib import admin
-from .models import RNRUser, RNRAccessToken
+from .models import RNRAccessToken
 
-admin.site.register(RNRUser)
 admin.site.register(RNRAccessToken)

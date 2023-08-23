@@ -93,5 +93,7 @@ RNR_HOSTNAME = "beta.api.rnrrooms.com"
 RNR_BASE_URL = "https://{}".format(RNR_HOSTNAME)
 RNR_API_KEY = os.environ.get("RNR_API_KEY")
 RNR_API_SECRET_KEY = os.environ.get("RNR_API_SECRET_KEY")
+RNR_USERNAME = os.environ.get("RNR_USERNAME")
+RNR_PASSWORD = os.environ.get("RNR_PASSWORD")
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -15,8 +15,19 @@ def uuid_without_dash():
 #         return f"< Refresh-Token {self.token}>"
 
 
+class RNRAnonymousUser:
+
+    @property
+    def is_authenticated(self):
+        return False
+
+
 class RNRUser(models.Model):
     username = models.CharField(max_length=256)
+
+    @property
+    def is_authenticated(self):
+        return True
 
     def __str__(self):
         return "<RNR User %s>" % self.username

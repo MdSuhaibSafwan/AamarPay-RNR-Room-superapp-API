@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 
-class UserAuthenticationAPIView(CreateAPIView):
+class RNRUserAuthenticationAPIView(CreateAPIView):
     serializer_class = RNRUserAuthenticationSerializer
 
     def create(self, *args, **kwargs):

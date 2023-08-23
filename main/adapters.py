@@ -85,9 +85,42 @@ class RNRRoomsAdapter:
         authentication_token_obj = self.get_authentication_token(self.access_token)
         headers["Authorization"] = authentication_token_obj.token
         return headers
+    
+    def rnr_check_available_property_rooms(self, data):
+        query = ""
+        query_seperator = "?"
+        for i in data.keys():
+            val = data[i]
+            query += query_seperator
+            query += f"{i}={val}"
+            query_seperator = "&"
+        
+        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/property/rooms/{query}"
+        data = self.request_a_url_and_get_data(url, method="get")
 
-    def request_rnr_destination(self, destination):
+
+    def rnr_destination(self, destination):
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/destination/{destination}/"
+        data = self.request_a_url_and_get_data(url, method="get")
+        return data
+    
+    def rnr_get_property_profile(self, property_id):
+        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/property-profile/{property_id}/"
+        data = self.request_a_url_and_get_data(url, "get")
+        return data
+
+    def rnr_search_properties(self, data: dict):
+        data["offset"] = 0
+        data["limit"] = 10
+        query = ""
+        query_seperator = "?"
+        for i in data.keys():
+            val = data[i]
+            query += query_seperator
+            query += f"{i}={val}"
+            query_seperator = "&"
+        
+        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/properties{query}"
         data = self.request_a_url_and_get_data(url, method="get")
         return data
 
@@ -95,13 +128,22 @@ class RNRRoomsAdapter:
         headers = self.get_total_headers()
         r = getattr(requests, method)(url, headers=headers, **kwargs)
         if (r.status_code >= 200) and (r.status_code <= 204):
-            return r.json()
+            return {
+                "success": True,
+                "error": False,
+                "api_data": r.json()
+            }
         
         if r.status_code == 401:
             self.get_authentication_token()
             self.request_a_url_and_get_data(url, method, **kwargs)
         
-        return self.error(r.json())
+        return self.make_error(r.json())
     
-    def error(self, json_data):
-        return json_data
+    def make_error(self, json_data):
+        data = {
+            "success": False,
+            "error": True,
+            "api_data": json_data
+        }
+        return data

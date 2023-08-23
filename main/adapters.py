@@ -97,9 +97,9 @@ class RNRRoomsAdapter:
         
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/property/rooms/{query}"
         data = self.request_a_url_and_get_data(url, method="get")
+        return data
 
-
-    def rnr_destination(self, destination):
+    def rnr_search_destination(self, destination):
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/destination/{destination}/"
         data = self.request_a_url_and_get_data(url, method="get")
         return data

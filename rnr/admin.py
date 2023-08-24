@@ -1,4 +1,9 @@
 from django.contrib import admin
 from .models import RNRAccessToken
 
-admin.site.register(RNRAccessToken)
+
+class RNRAccessTokenAdmin(admin.ModelAdmin):
+    list_display = ["expired", "created", "expire_time"]
+
+
+admin.site.register(RNRAccessToken, RNRAccessTokenAdmin)

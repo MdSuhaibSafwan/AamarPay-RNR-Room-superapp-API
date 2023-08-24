@@ -2,8 +2,6 @@ import json
 import requests
 from .models import RNRAccessToken
 from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
 from django.db import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
 

@@ -1,9 +1,9 @@
 from django.apps import AppConfig
 
 
-class MainConfig(AppConfig):
+class RNRConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'main'
+    name = 'rnr'
 
     def ready(self):
         from . import signals

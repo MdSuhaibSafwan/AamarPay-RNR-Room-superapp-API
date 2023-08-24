@@ -19,8 +19,12 @@ class RNRPropertySearchSerializer(serializers.Serializer):
 
         if c_out < c_in:
             raise serializers.ValidationError("Check out date cannot be more than check in date")
+        
+        return attrs
+    
+    def request_to_rnr_api(self):
         rnr_adapter = RNRRoomsAdapter()
-        data = rnr_adapter.rnr_search_properties(attrs)
+        data = rnr_adapter.rnr_search_properties(self.validated_data)
         if data.get("success") is not True:
             raise serializers.ValidationError(data.get("api_data"))
         
@@ -44,8 +48,8 @@ class RNRPropertySearchSerializer(serializers.Serializer):
 class RNRSearchDestinationSerializer(serializers.Serializer):
     destination = serializers.CharField(required=True)
 
-    def validate(self, attrs):
-        destination = attrs["destination"]
+    def request_to_rnr_api(self):
+        destination = self.validated_data["destination"]
         rnr_adapter = RNRRoomsAdapter()
         data = rnr_adapter.rnr_search_destination(destination)
         succeeded = data.get("success", False)
@@ -59,6 +63,16 @@ class RNRPropertyRoomsAvailabilitySerializer(serializers.Serializer):
     check_in = serializers.DateField()
     check_out = serializers.DateField()
 
+    def request_to_rnr_api(self):
+        rnr_adapter = RNRRoomsAdapter()
+
+        self.validated_data["property_id"] = self.context.get("property_id")
+        data = rnr_adapter.rnr_check_available_property_rooms(self.validated_data)
+        if data.get("success") is not True:
+            raise serializers.ValidationError(data.get("api_data"))
+        
+        return data
+
     def validate(self, attrs):
         c_in = attrs["check_in"]
         c_out = attrs["check_out"]
@@ -67,15 +81,9 @@ class RNRPropertyRoomsAvailabilitySerializer(serializers.Serializer):
 
         if c_out < c_in:
             raise serializers.ValidationError("Check out date cannot be more than check in date")
-        rnr_adapter = RNRRoomsAdapter()
-
-        attrs["property_id"] = self.context.get("property_id")
-        data = rnr_adapter.rnr_check_available_property_rooms(attrs)
-        if data.get("success") is not True:
-            raise serializers.ValidationError(data.get("api_data"))
-        
-        return data
     
+        return attrs
+
     def validate_check_in(self, val):
         now = timezone.now().date()
         if now > val:   
@@ -101,6 +109,16 @@ class RNRRoomReservationSerializer(serializers.Serializer):
     guest_address = serializers.CharField(required=True)
     guest_special_request = serializers.CharField(required=False)
 
+    def request_to_rnr_api(self):
+        rnr_adapter = RNRRoomsAdapter()
+        self.validated_data["rooms_details"] = self.validated_data["rooms"]
+        del self.validated_data["rooms"]
+        data = rnr_adapter.rnr_reserve_rooms(self.validated_data)
+        if data.get("success") is not True:
+            raise serializers.ValidationError(data.get("api_data"))
+        
+        return data
+
     def validate_guest_mobile_no(self, val):
         matches = re.findall("[+]880\d{10}", val)
         if matches.__len__() < 1:
@@ -112,24 +130,14 @@ class RNRRoomReservationSerializer(serializers.Serializer):
         if matches.__len__() < 1:
             raise serializers.ValidationError("provide correct email format")
         return val
-    
-    def validate(self, attrs):
-        rnr_adapter = RNRRoomsAdapter()
-        attrs["rooms_details"] = attrs["rooms"]
-        del attrs["rooms"]
-        data = rnr_adapter.rnr_reserve_rooms(attrs)
-        if data.get("success") is not True:
-            raise serializers.ValidationError(data.get("api_data"))
-        
-        return data
 
 
 class RNRRoomReservationConfirmSerializer(serializers.Serializer):
     reservation_id = serializers.CharField(required=True)
 
-    def validate(self, attrs):
+    def request_to_rnr_api(self):
         rnr_adapter = RNRRoomsAdapter()
-        data = rnr_adapter.rnr_confirm_reservation(attrs.get("reservation_id"))
+        data = rnr_adapter.rnr_confirm_reservation(self.validated_data.get("reservation_id"))
         if data.get("success") is not True:
             raise serializers.ValidationError(data.get("api_data"))
         return data

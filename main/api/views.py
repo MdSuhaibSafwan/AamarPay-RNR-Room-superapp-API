@@ -17,7 +17,8 @@ class RNRSearchDesinationAPIView(APIView):
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        data = serializer.request_to_rnr_api()
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class RNRPropertySearchAPIView(APIView):
@@ -26,7 +27,8 @@ class RNRPropertySearchAPIView(APIView):
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        data = serializer.request_to_rnr_api()
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class RNRGetPropertyProfileAPIView(APIView):
@@ -49,7 +51,8 @@ class RNRSearchPropertyAvailableRooms(APIView):
         property_id = kwargs.get("rnr_property_id")
         serializer.context["property_id"] = property_id
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        data = serializer.request_to_rnr_api()
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class RNRReserveRoomHoldAPIView(APIView):
@@ -58,7 +61,8 @@ class RNRReserveRoomHoldAPIView(APIView):
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        data = serializer.request_to_rnr_api()
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class RNRConfirmReservationAPIView(APIView):
@@ -67,13 +71,14 @@ class RNRConfirmReservationAPIView(APIView):
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        data = serializer.request_to_rnr_api()
+        return Response(data, status=status.HTTP_200_OK)
      
 
 
 """
 {
-    "search_id": 122,
+    "search_id": 128,
     "property_id": "2",
     "guest_email": "admin@gmail.com",
     "guest_name": "md",

@@ -25,6 +25,9 @@ class RNRRoomsAdapter:
                 return self.access_token
             
             obj = qs.get()
+            if obj.has_expired():
+                obj = self.request_rnr_access_token()
+                
             self.access_token = obj
             return obj
         

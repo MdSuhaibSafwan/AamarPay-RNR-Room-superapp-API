@@ -85,6 +85,31 @@ class RNRRoomsAdapter:
         authentication_token_obj = self.get_authentication_token(self.access_token)
         headers["Authorization"] = authentication_token_obj.token
         return headers
+
+    def request_a_url_and_get_data(self, url, method, **kwargs):
+        headers = self.get_total_headers()
+        r = getattr(requests, method)(url, headers=headers, **kwargs)
+        if (r.status_code >= 200) and (r.status_code <= 204):
+            return {
+                "success": True,
+                "error": False,
+                "api_data": r.json()
+            }
+        
+        if r.status_code == 401:
+            print("Un authorized")
+            self.get_authentication_token()
+            return self.request_a_url_and_get_data(url, method, **kwargs)
+        
+        return self.make_error(r.json())
+    
+    def make_error(self, json_data):
+        data = {
+            "success": False,
+            "error": True,
+            "api_data": json_data
+        }
+        return data
     
     def rnr_check_available_property_rooms(self, data):
         query = ""
@@ -124,26 +149,45 @@ class RNRRoomsAdapter:
         data = self.request_a_url_and_get_data(url, method="get")
         return data
 
-    def request_a_url_and_get_data(self, url, method, **kwargs):
-        headers = self.get_total_headers()
-        r = getattr(requests, method)(url, headers=headers, **kwargs)
-        if (r.status_code >= 200) and (r.status_code <= 204):
-            return {
-                "success": True,
-                "error": False,
-                "api_data": r.json()
-            }
-        
-        if r.status_code == 401:
-            self.get_authentication_token()
-            self.request_a_url_and_get_data(url, method, **kwargs)
-        
-        return self.make_error(r.json())
-    
-    def make_error(self, json_data):
-        data = {
-            "success": False,
-            "error": True,
-            "api_data": json_data
+    def rnr_price_check(self, payload):
+        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/property/rooms/rate-check/"
+        # print("price payload ", payload)
+        data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
+        # print("Resp data ", data)
+        return data
+
+    def rnr_validate_price_check(self, payload):
+        data = self.rnr_price_check(payload)
+        return data.get("success", False)
+
+    def rnr_reserve_rooms(self, payload):
+        # print(payload)
+        price_check_payload = {
+            "search_id": payload.get("search_id"),
+            "property_id": payload.get("property_id"),
+            "rooms": payload.get("rooms_details")
         }
+        # print("payload ", price_check_payload)
+        is_valid = self.rnr_validate_price_check(price_check_payload)
+        if not is_valid:
+            resp_data = {
+                "api_data": { 
+                    "validation": "Failed",
+                    "rooms": "not available",
+                    "message": "room not available",
+                },
+                "success": False,
+                "error": True
+            }
+            return resp_data
+        
+        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/hold/"
+        # print("Valid ", is_valid)
+        # print("data ", payload)
+        data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
+        return data
+    
+    def rnr_confirm_reservation(self, reservation_id):
+        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
+        data = self.request_a_url_and_get_data(url, method="patch")
         return data

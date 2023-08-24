@@ -24,6 +24,6 @@ class RNRAccessToken(models.Model):
             return self.expired
         t1 = timezone.now()
         t2 = self.created + timedelta(seconds=self.expire_time)
-        return t2 < t1
+        return t1 > t2
         
 

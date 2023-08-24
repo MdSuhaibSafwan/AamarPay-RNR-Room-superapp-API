@@ -1,3 +1,4 @@
+import re
 from rest_framework import serializers
 from django.conf import settings
 from django.utils import timezone
@@ -88,3 +89,47 @@ class RNRPropertyRoomsAvailabilitySerializer(serializers.Serializer):
             raise serializers.ValidationError("Check out cannot be more than today")
 
         return val
+
+
+class RNRRoomReservationSerializer(serializers.Serializer):
+    search_id = serializers.IntegerField()
+    property_id = serializers.IntegerField()
+    rooms = serializers.ListField()
+    guest_name = serializers.CharField(required=True)
+    guest_email = serializers.CharField(required=True)
+    guest_mobile_no = serializers.CharField(required=True)
+    guest_address = serializers.CharField(required=True)
+    guest_special_request = serializers.CharField(required=False)
+
+    def validate_guest_mobile_no(self, val):
+        matches = re.findall("[+]880\d{10}", val)
+        if matches.__len__() < 1:
+            raise serializers.ValidationError("provide correct phone format")
+        return val
+
+    def validate_guest_email(self, val):
+        matches = re.findall("\w+@\w+[.]com", val)
+        if matches.__len__() < 1:
+            raise serializers.ValidationError("provide correct email format")
+        return val
+    
+    def validate(self, attrs):
+        rnr_adapter = RNRRoomsAdapter()
+        attrs["rooms_details"] = attrs["rooms"]
+        del attrs["rooms"]
+        data = rnr_adapter.rnr_reserve_rooms(attrs)
+        if data.get("success") is not True:
+            raise serializers.ValidationError(data.get("api_data"))
+        
+        return data
+
+
+class RNRRoomReservationConfirmSerializer(serializers.Serializer):
+    reservation_id = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        rnr_adapter = RNRRoomsAdapter()
+        data = rnr_adapter.rnr_confirm_reservation(attrs.get("reservation_id"))
+        if data.get("success") is not True:
+            raise serializers.ValidationError(data.get("api_data"))
+        return data

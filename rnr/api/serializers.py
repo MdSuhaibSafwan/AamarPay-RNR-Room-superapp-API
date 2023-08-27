@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.conf import settings
 from django.utils import timezone
 from ..adapters import RNRRoomsAdapter
+from ..models import RNRRoomCompare
 
 
 class RNRPropertySearchSerializer(serializers.Serializer):
@@ -141,3 +142,24 @@ class RNRRoomReservationConfirmSerializer(serializers.Serializer):
         if data.get("success") is not True:
             raise serializers.ValidationError(data.get("api_data"))
         return data
+
+
+class RNRRoomCompareSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = RNRRoomCompare
+        fields = ["id", "room"]
+
+    def validate_room(self, value):
+        if value == {}:
+            raise serializers.ValidationError("Room cannot be empty dict")
+
+        return value
+    
+    def create(self, validated_data):
+        user = self.context.get("request", None).user
+        if not user.is_authenticated:
+            raise serializers.ValidationError("User not Authenticated")
+        validated_data["user"] = user
+        return RNRRoomCompare.objects.create(**validated_data)
+

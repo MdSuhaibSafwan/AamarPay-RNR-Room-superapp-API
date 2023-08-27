@@ -3,12 +3,17 @@ from rest_framework.views import APIView
 from rest_framework.generics import CreateAPIView, ListAPIView
 from .serializers import (RNRSearchDestinationSerializer, RNRPropertySearchSerializer,
             RNRPropertyRoomsAvailabilitySerializer, RNRRoomReservationSerializer,
-            RNRRoomReservationConfirmSerializer)
+            RNRRoomReservationConfirmSerializer, RNRRoomCompareSerializer)
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
 from ..adapters import RNRRoomsAdapter
 from rest_framework.exceptions import ValidationError, NotFound, PermissionDenied
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
+from ..models import RNRRoomCompare
+from .permissions import RNRRoomComparePermission
 
 
 class RNRSearchDesinationAPIView(APIView):
@@ -73,7 +78,20 @@ class RNRConfirmReservationAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.request_to_rnr_api()
         return Response(data, status=status.HTTP_200_OK)
-     
+
+
+class RNRRoomCompareViewSet(ModelViewSet):
+    serializer_class = RNRRoomCompareSerializer
+    permission_classes = [IsAuthenticated, RNRRoomComparePermission, ]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = RNRRoomCompare.objects.filter(user=user)
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.context["request"] = self.request
+        return serializer.save()
 
 
 """

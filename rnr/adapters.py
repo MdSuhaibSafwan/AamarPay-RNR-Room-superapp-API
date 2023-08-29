@@ -1,6 +1,6 @@
 import json
 import requests
-from .models import RNRAccessToken
+from .models import RNRAccessToken, RNRRoomReservation
 from django.conf import settings
 from django.db import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
@@ -161,11 +161,12 @@ class RNRRoomsAdapter:
         data = self.rnr_price_check(payload)
         return data.get("success", False)
 
-    def rnr_reserve_rooms(self, payload):
-        # print(payload)
+    def rnr_reserve_rooms(self, payload: dict):
+        property_id = payload.get("property_id")
+        user = payload.pop("user")
         price_check_payload = {
             "search_id": payload.get("search_id"),
-            "property_id": payload.get("property_id"),
+            "property_id": property_id,
             "rooms": payload.get("rooms_details")
         }
         # print("payload ", price_check_payload)
@@ -183,12 +184,46 @@ class RNRRoomsAdapter:
             return resp_data
         
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/hold/"
-        # print("Valid ", is_valid)
-        # print("data ", payload)
         data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
+        if data.get("success") == True:
+            api_data = data.get("api_data")
+            self.insert_reservation_to_db(api_data, property_id=property_id, user=user)
+
         return data
     
     def rnr_confirm_reservation(self, reservation_id):
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
+        transaction_code = data.get("api_data").get("data")["payment"]["transaction_code"]
+        self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code)
         return data
+    
+    def insert_reservation_to_db(self, data: dict, **kwargs):
+        data = data.get("data")
+        reservation_hold_data = {
+            "reservation_id": data.get("id"),
+            "check_in": data.get("check_in"),
+            "check_out": data.get("check_out"),
+            "amount": data.get("grand_total_rate"),
+            "currency": data.get("currency"),
+            "property_id": data.get("property_id", kwargs.get("property_id", None)),
+            "user": data.get("user", kwargs.get("user", None)),
+            "currency": data.get("currency"),
+        }
+
+        obj = RNRRoomReservation.objects.create(**reservation_hold_data)    
+        return obj
+    
+    def confirm_reservation_in_db(self, data: dict={}, **kwargs):
+        reservation_id = data.get("reservation_id", kwargs.get("reservation_id", None))
+        transaction_code = data.get("transaction_code", kwargs.get("transaction_code", None))
+    
+        try:
+            obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
+        except ObjectDoesNotExist:
+            return None
+        
+        obj.is_active = True
+        obj.rnr_transaction_code = transaction_code
+        obj.save()
+        return obj

@@ -65,6 +65,7 @@ class RNRReserveRoomHoldAPIView(APIView):
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
+        serializer.context["request"] = self.request
         data = serializer.request_to_rnr_api()
         return Response(data, status=status.HTTP_200_OK)
 

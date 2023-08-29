@@ -136,12 +136,14 @@ class RNRRoomReservationSerializer(serializers.Serializer):
 
 class RNRRoomReservationConfirmSerializer(serializers.Serializer):
     reservation_id = serializers.CharField(required=True)
+    mer_txid = serializers.CharField(required=True)
 
     def request_to_rnr_api(self):
         rnr_adapter = RNRRoomsAdapter()
-        data = rnr_adapter.rnr_confirm_reservation(self.validated_data.get("reservation_id"))
+        data = rnr_adapter.rnr_confirm_reservation(self.validated_data.get("reservation_id"), self.validated_data.get("mer_txid"))
         if data.get("success") is not True:
             raise serializers.ValidationError(data.get("api_data"))
+
         return data
 
 

@@ -191,7 +191,33 @@ class RNRRoomsAdapter:
 
         return data
     
-    def rnr_confirm_reservation(self, reservation_id):
+    def rnr_confirm_reservation(self, reservation_id, mer_txid=None):
+        if mer_txid is None:
+            return self.make_error(["provide merchant transaction id"])
+        
+        query = ""
+        query_seperator = "?"
+        data = {
+            "store_id": settings.AAMARPAY_STORE_ID,
+            "signature_key": settings.AAMARPAY_SIGNATURE_KEY,
+            "type": "json",
+            "request_id": mer_txid
+        }
+        for i in data.keys():
+            val = data[i]
+            query += query_seperator
+            query += f"{i}={val}"
+            query_seperator = "&"
+
+        url = f"{settings.AAMARPAY_DEV_URL}/api/v1/trxcheck/request.php{query}"
+        r = requests.get(url)
+        data = r.json()
+        ap_status_code = data.get("status_code", None)
+        if ap_status_code is None:
+            return self.make_error(["Invalid merchant transaction id provided"])
+        if ap_status_code != 2:
+            return self.make_error(["Payment not successfull"])   
+            
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
         transaction_code = data.get("api_data").get("data")["payment"]["transaction_code"]
@@ -233,11 +259,7 @@ class RNRRoomsAdapter:
         try:
             reservation_obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
         except ObjectDoesNotExist:
-            return {
-                "success": False,
-                "error": True,
-                "message": "Reservation id not found"
-            }
+            return self.make_error("Reservation id not found")
         res_ref_obj, created = RNRRoomReservationRefund.objects.get_or_create(reservation=reservation_obj)
         return {
                 "success": False,

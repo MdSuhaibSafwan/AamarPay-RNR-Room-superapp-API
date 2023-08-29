@@ -39,6 +39,8 @@ class RNRRoomReservation(models.Model):
     check_out = models.DateField()
     amount = models.FloatField()
     rnr_transaction_code = models.CharField(max_length=2040, null=True)
+    pg_txid = models.CharField(max_length=2040, null=True)
+    mer_txid = models.CharField(max_length=2040, null=True)
     currency = models.CharField(max_length=3)
     date_created = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)

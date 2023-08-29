@@ -45,3 +45,14 @@ class RNRRoomReservation(models.Model):
 
     def __str__(self):
         return str(self.reservation_id)
+
+
+class RNRRoomReservationRefund(models.Model):
+    reservation = models.OneToOneField(RNRRoomReservation, on_delete=models.CASCADE, )
+    refunded = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return str(self.reservation.reservation_id)
+

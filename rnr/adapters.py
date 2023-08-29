@@ -1,6 +1,6 @@
 import json
 import requests
-from .models import RNRAccessToken, RNRRoomReservation
+from .models import RNRAccessToken, RNRRoomReservation, RNRRoomReservationRefund
 from django.conf import settings
 from django.db import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
@@ -227,3 +227,23 @@ class RNRRoomsAdapter:
         obj.rnr_transaction_code = transaction_code
         obj.save()
         return obj
+    
+    def ask_for_refund(self, data: dict):
+        reservation_id = data.get("reservation_id", None)
+        try:
+            reservation_obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
+        except ObjectDoesNotExist:
+            return {
+                "success": False,
+                "error": True,
+                "message": "Reservation id not found"
+            }
+        res_ref_obj, created = RNRRoomReservationRefund.objects.get_or_create(reservation=reservation_obj)
+        return {
+                "success": False,
+                "error": True,
+                "message": "Reservation added for refund",
+                "reservation_refund_id": res_ref_obj.id,
+                "reservation_id": reservation_obj.reservation_id
+        }
+

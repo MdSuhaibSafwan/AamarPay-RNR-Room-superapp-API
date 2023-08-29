@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.conf import settings
 from django.utils import timezone
 from ..adapters import RNRRoomsAdapter
+from ..models import RNRRoomReservation
 
 
 class RNRPropertySearchSerializer(serializers.Serializer):
@@ -188,4 +189,20 @@ class RNRRoomCompareSerializer(serializers.Serializer):
         data["api_data"]["data"]["rooms"] = filtered_rooms_list
         data["api_data"]["data"]["total"] = len(filtered_rooms_list)
 
+        return data
+
+
+class ReservationRefundSerializer(serializers.Serializer):
+    reservation_id = serializers.CharField()
+
+    def validate_reservation_id(self, value):
+        qs = RNRRoomReservation.objects.filter(reservation_id=value)
+        if not qs.exists():
+            raise serializers.ValidationError("Reservation not found")
+        
+        return value
+
+    def request_rnr_api(self):
+        adapter = RNRRoomsAdapter()
+        data = adapter.ask_for_refund(self.validated_data)
         return data

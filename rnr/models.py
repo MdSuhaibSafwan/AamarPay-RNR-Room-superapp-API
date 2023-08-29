@@ -28,4 +28,19 @@ class RNRAccessToken(models.Model):
         t1 = timezone.now()
         t2 = self.created + timedelta(seconds=self.expire_time)
         return t1 > t2
-        
+
+
+class RNRRoomReservation(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    reservation_id = models.IntegerField()
+    property_id = models.IntegerField()
+    check_in = models.DateField()
+    check_out = models.DateField()
+    amount = models.FloatField()
+    rnr_transaction_code = models.CharField(max_length=2040)
+    currency = models.CharField(max_length=3)
+    date_created = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return str(self.reservation_id)

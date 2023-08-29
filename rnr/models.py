@@ -29,13 +29,3 @@ class RNRAccessToken(models.Model):
         t2 = self.created + timedelta(seconds=self.expire_time)
         return t1 > t2
         
-
-
-class RNRRoomCompare(models.Model):
-    id = models.UUIDField(primary_key=True, unique=True, editable=False, default=uuid_without_dash)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    room = models.JSONField(default=dict)
-
-    def __str__(self):
-        return str(self.id)
-

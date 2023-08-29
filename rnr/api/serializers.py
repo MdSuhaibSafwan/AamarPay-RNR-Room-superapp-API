@@ -3,7 +3,6 @@ from rest_framework import serializers
 from django.conf import settings
 from django.utils import timezone
 from ..adapters import RNRRoomsAdapter
-from ..models import RNRRoomCompare
 
 
 class RNRPropertySearchSerializer(serializers.Serializer):
@@ -144,22 +143,48 @@ class RNRRoomReservationConfirmSerializer(serializers.Serializer):
         return data
 
 
-class RNRRoomCompareSerializer(serializers.ModelSerializer):
+class RNRRoomCompareSerializer(serializers.Serializer):
+    property_id = serializers.CharField()
+    rooms = serializers.ListField()
+    check_in = serializers.DateField()
+    check_out = serializers.DateField()
 
-    class Meta:
-        model = RNRRoomCompare
-        fields = ["id", "room"]
+    def validate(self, attrs):
+        c_in = attrs["check_in"]
+        c_out = attrs["check_out"]
+        if c_in == c_out:
+            raise serializers.ValidationError("Check in and checkout date cannot be same")
 
-    def validate_room(self, value):
-        if value == {}:
-            raise serializers.ValidationError("Room cannot be empty dict")
-
-        return value
+        if c_out < c_in:
+            raise serializers.ValidationError("Check out date cannot be more than check in date")
     
-    def create(self, validated_data):
-        user = self.context.get("request", None).user
-        if not user.is_authenticated:
-            raise serializers.ValidationError("User not Authenticated")
-        validated_data["user"] = user
-        return RNRRoomCompare.objects.create(**validated_data)
+        return attrs
+    
+    def make_rnr_request_with_validated_data(self, raise_exception=False):
+        data = self.validated_data
+        rooms_filter = data.pop("rooms")
+        print("Rooms list " , rooms_filter)
+        adapter = RNRRoomsAdapter()
+        data = adapter.rnr_check_available_property_rooms(data)
+        if raise_exception == True:
+            error = data.get("error", False)
+            if error is True:
+                raise serializers.ValidationError(data.get("api_data")) 
+        
+        rooms = data.get("api_data").get("data").get("rooms")
+        filtered_rooms_list = []
+        for room in rooms:
+            room_id = int(room.get("id"))
+            if room_id in rooms_filter:
+                rooms_filter.pop(rooms_filter.index(room_id))
+                filtered_rooms_list.append(room)
 
+        if raise_exception == True:
+            if rooms_filter.__len__() > 0:
+                raise serializers.ValidationError(f"Rooms with id {rooms_filter} not found")
+        
+
+        data["api_data"]["data"]["rooms"] = filtered_rooms_list
+        data["api_data"]["data"]["total"] = len(filtered_rooms_list)
+
+        return data

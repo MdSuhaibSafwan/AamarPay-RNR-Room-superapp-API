@@ -12,7 +12,6 @@ from rest_framework.exceptions import ValidationError, NotFound, PermissionDenie
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
-from ..models import RNRRoomCompare
 from .permissions import RNRRoomComparePermission
 
 
@@ -80,18 +79,14 @@ class RNRConfirmReservationAPIView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-class RNRRoomCompareViewSet(ModelViewSet):
-    serializer_class = RNRRoomCompareSerializer
-    permission_classes = [IsAuthenticated, RNRRoomComparePermission, ]
+@api_view(http_method_names=["POST", ])
+@permission_classes([IsAuthenticated, ])
+def compare_rnr_rooms_api_view(request):
+    serializer = RNRRoomCompareSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.make_rnr_request_with_validated_data(raise_exception=True)
 
-    def get_queryset(self):
-        user = self.request.user
-        qs = RNRRoomCompare.objects.filter(user=user)
-        return qs
-
-    def perform_create(self, serializer):
-        serializer.context["request"] = self.request
-        return serializer.save()
+    return Response(data, status=status.HTTP_200_OK)
 
 
 """

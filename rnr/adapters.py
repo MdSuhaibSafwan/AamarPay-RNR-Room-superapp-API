@@ -217,11 +217,14 @@ class RNRRoomsAdapter:
             return self.make_error(["Invalid merchant transaction id provided"])
         if ap_status_code != 2:
             return self.make_error(["Payment not successfull"])   
+        
+        pg_txid = data.get("pg_txid")
             
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
         transaction_code = data.get("api_data").get("data")["payment"]["transaction_code"]
-        self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code)
+        self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code, 
+                                       mer_txid=mer_txid, pg_txid=pg_txid)
         return data
     
     def insert_reservation_to_db(self, data: dict, **kwargs):
@@ -243,6 +246,8 @@ class RNRRoomsAdapter:
     def confirm_reservation_in_db(self, data: dict={}, **kwargs):
         reservation_id = data.get("reservation_id", kwargs.get("reservation_id", None))
         transaction_code = data.get("transaction_code", kwargs.get("transaction_code", None))
+        pg_txid = data.get("pg_txid", kwargs.get("pg_txid", None))
+        mer_txid = data.get("mer_txid", kwargs.get("mer_txid", None))
     
         try:
             obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
@@ -251,6 +256,8 @@ class RNRRoomsAdapter:
         
         obj.is_active = True
         obj.rnr_transaction_code = transaction_code
+        obj.pg_txid = pg_txid
+        obj.mer_txid = mer_txid
         obj.save()
         return obj
     

@@ -313,8 +313,7 @@ class AamarpayPgAdapter:
         if pg_status_code != 2:
             return {"verified": False, "data": data, "status": "payment not successfull"}
         
-        opt_a = json.laods(data.get("opt_a"))
-        pg_meta_reservation_id = opt_a.get("reservation_id", None)
+        pg_meta_reservation_id = data.get("opt_c")
         if pg_meta_reservation_id is None:
             return {"verified": False, "data": data, "status": "Reservation id not provided"}
         

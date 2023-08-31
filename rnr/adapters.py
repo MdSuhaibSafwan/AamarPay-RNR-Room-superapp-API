@@ -301,7 +301,6 @@ class AamarpayPgAdapter:
             query_seperator = "&"
 
         url = f"http://sandbox.aamarpay.com/api/v1/trxcheck/request.php{query}"
-        print("URL --> ", url)
         r = requests.get(url, )
         return r.json()
     

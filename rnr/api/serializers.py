@@ -2,7 +2,7 @@ import re
 from rest_framework import serializers
 from django.conf import settings
 from django.utils import timezone
-from ..adapters import RNRRoomsAdapter
+from ..adapters import RNRRoomsAdapter, AamarpayPgAdapter
 from ..models import RNRRoomReservation
 
 
@@ -145,6 +145,17 @@ class RNRRoomReservationConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError(data.get("api_data"))
 
         return data
+    
+    def validate(self, attrs):
+        reservation_id = attrs["reservation_id"]
+        mer_txid = attrs["mer_txid"]
+        pg = AamarpayPgAdapter()
+        pg_verification_data = pg.verify_transaction(mer_txid, reservation_id)
+        verified = pg_verification_data.get("verified")
+        if not verified:
+            raise serializers.ValidationError(pg_verification_data)
+        
+        return super().validate(attrs)
 
 
 class RNRRoomCompareSerializer(serializers.Serializer):

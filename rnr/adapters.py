@@ -276,3 +276,52 @@ class RNRRoomsAdapter:
                 "reservation_id": reservation_obj.reservation_id
         }
 
+
+class AamarpayPgAdapter:
+
+    def __init__(self):
+        self.store_id = settings.AAMARPAY_STORE_ID
+        self.signature_key = settings.AAMARPAY_SIGNATURE_KEY
+        self.dev_url = settings.AAMARPAY_DEV_URL
+
+    def search_transaction(self, mer_txid):
+        url_params = {
+            "request_id": mer_txid,
+            "store_id": self.store_id,
+            "signature_key": self.signature_key,
+            "type": "json"
+        }
+        query = ""
+        query_seperator = "?"
+        
+        for i in url_params.keys():
+            val = url_params[i]
+            query += query_seperator
+            query += f"{i}={val}"
+            query_seperator = "&"
+
+        url = f"http://sandbox.aamarpay.com/api/v1/trxcheck/request.php{query}"
+        print("URL --> ", url)
+        r = requests.get(url, )
+        return r.json()
+    
+    def verify_transaction(self, mer_txid, reservation_id):
+        data = self.search_transaction(mer_txid)
+        pg_status_code = data.get("status_code", None)
+        if pg_status_code is None:
+            return {"verified": False, "data": data, "status": "invalid request id or store id"}
+
+        if pg_status_code != 2:
+            return {"verified": False, "data": data, "status": "payment not successfull"}
+        
+        opt_a = data.get("opt_a")
+        pg_meta_reservation_id = opt_a.get("reservation_id", None)
+        if pg_meta_reservation_id is None:
+            return {"verified": False, "data": data, "status": "Reservation id not provided"}
+        
+        if reservation_id != pg_meta_reservation_id:
+            return {"verified": False, "data": data, "status": "Reservation id provided does not match the pg meta reservation id"}
+
+        return {"verified": True, "data": data}
+
+

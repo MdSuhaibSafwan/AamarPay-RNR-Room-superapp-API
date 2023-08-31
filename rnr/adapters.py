@@ -300,7 +300,7 @@ class AamarpayPgAdapter:
             query += f"{i}={val}"
             query_seperator = "&"
 
-        url = f"http://sandbox.aamarpay.com/api/v1/trxcheck/request.php{query}"
+        url = f"{settings.AAMARPAY_DEV_URL}/api/v1/trxcheck/request.php{query}"
         r = requests.get(url, )
         return r.json()
     

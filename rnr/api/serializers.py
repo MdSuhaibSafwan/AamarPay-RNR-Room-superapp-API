@@ -52,7 +52,8 @@ class RNRSearchDestinationSerializer(serializers.Serializer):
     def request_to_rnr_api(self):
         destination = self.validated_data["destination"]
         rnr_adapter = RNRRoomsAdapter()
-        data = rnr_adapter.rnr_search_destination(destination)
+        data = rnr_adapter.rnr_search_destination(destination) 
+        # destination can be all 64 districts here searching the destination
         succeeded = data.get("success", False)
         if not succeeded:
             raise serializers.ValidationError(data.get("api_data"))
@@ -111,11 +112,11 @@ class RNRRoomReservationSerializer(serializers.Serializer):
     guest_special_request = serializers.CharField(required=False)
 
     def request_to_rnr_api(self):
-        rnr_adapter = RNRRoomsAdapter()
+        rnr_adapter = RNRRoomsAdapter() # initialized rnr adapter
         self.validated_data["rooms_details"] = self.validated_data["rooms"]
         del self.validated_data["rooms"]
-        self.validated_data["user"] = self.context.get("request").user
-        data = rnr_adapter.rnr_reserve_rooms(self.validated_data)
+        self.validated_data["user"] = self.context.get("request").user # getting current authenticated user from request
+        data = rnr_adapter.rnr_reserve_rooms(self.validated_data) # reserving rooms from validated data
         if data.get("success") is not True:
             raise serializers.ValidationError(data.get("api_data"))
         
@@ -128,7 +129,7 @@ class RNRRoomReservationSerializer(serializers.Serializer):
         return val
 
     def validate_guest_email(self, val):
-        matches = re.findall("\w+@\w+[.]com", val)
+        matches = re.findall("\w+@\w+[.]com", val) # checking email format via regular expression
         if matches.__len__() < 1:
             raise serializers.ValidationError("provide correct email format")
         return val
@@ -150,7 +151,8 @@ class RNRRoomReservationConfirmSerializer(serializers.Serializer):
         reservation_id = attrs["reservation_id"]
         mer_txid = attrs["mer_txid"]
         pg = AamarpayPgAdapter()
-        pg_verification_data = pg.verify_transaction(mer_txid, reservation_id)
+        pg_verification_data = pg.verify_transaction(mer_txid, reservation_id) 
+        # verifying transaction and getting an object
         verified = pg_verification_data.get("verified")
         if not verified:
             raise serializers.ValidationError(pg_verification_data)
@@ -177,11 +179,10 @@ class RNRRoomCompareSerializer(serializers.Serializer):
     
     def make_rnr_request_with_validated_data(self, raise_exception=False):
         data = self.validated_data
-        rooms_filter = data.pop("rooms")
-        print("Rooms list " , rooms_filter)
+        rooms_filter = data.pop("rooms") # frontend will provide a list of rooms
         adapter = RNRRoomsAdapter()
-        data = adapter.rnr_check_available_property_rooms(data)
-        if raise_exception == True:
+        data = adapter.rnr_check_available_property_rooms(data) # checking if the rooms are available
+        if raise_exception == True: 
             error = data.get("error", False)
             if error is True:
                 raise serializers.ValidationError(data.get("api_data")) 
@@ -193,9 +194,11 @@ class RNRRoomCompareSerializer(serializers.Serializer):
             if room_id in rooms_filter:
                 rooms_filter.pop(rooms_filter.index(room_id))
                 filtered_rooms_list.append(room)
+        # via this loop we are checking if all the rooms provided are available there
 
         if raise_exception == True:
             if rooms_filter.__len__() > 0:
+                # if there is any extra room provided we are returning an error
                 raise serializers.ValidationError(f"Rooms with id {rooms_filter} not found")
         
 
@@ -217,5 +220,5 @@ class ReservationRefundSerializer(serializers.Serializer):
 
     def request_rnr_api(self):
         adapter = RNRRoomsAdapter()
-        data = adapter.ask_for_refund(self.validated_data)
+        data = adapter.ask_for_refund(self.validated_data) # adding to refund table with validated data
         return data

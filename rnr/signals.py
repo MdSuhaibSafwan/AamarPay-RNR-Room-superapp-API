@@ -7,5 +7,5 @@ from django.db.models import Q
 @receiver(signal=post_save, sender=RNRAccessToken)
 def make_all_other_rnr_access_token_expired_other_than_this(sender, instance, created, **kwargs):
     if created:
-        qs = RNRAccessToken.objects.filter(~Q(id=instance.id))
+        qs = RNRAccessToken.objects.filter(~Q(id=instance.id), expired=False)
         qs.update(expired=True)

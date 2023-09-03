@@ -192,7 +192,7 @@ class RNRRoomCompareSerializer(serializers.Serializer):
         data["api_data"]["data"]["rooms"] = filtered_rooms_list
         data["api_data"]["data"]["total"] = len(filtered_rooms_list)
 
-        return data
+        return structure_api_data_or_send_validation_error(data, raise_exception=True)
 
 
 class ReservationRefundSerializer(serializers.Serializer):

@@ -9,15 +9,17 @@ from rest_framework.response import Response
 from rest_framework import status
 from ..adapters import RNRRoomsAdapter
 from rest_framework.exceptions import ValidationError, NotFound, PermissionDenied
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, renderer_classes
 from rest_framework.viewsets import ModelViewSet
 from .permissions import RNRRoomComparePermission, IsAuthenticated
 from ..utils import structure_api_data_or_send_validation_error
+from .renderer import RNRAPIJSONRenderer
 
 
 class RNRSearchDesinationAPIView(APIView):
     serializer_class = RNRSearchDestinationSerializer
     permission_classes = [IsAuthenticated, ]
+    renderer_classes = [RNRAPIJSONRenderer, ]
 
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
@@ -29,6 +31,7 @@ class RNRSearchDesinationAPIView(APIView):
 class RNRPropertySearchAPIView(APIView):
     serializer_class = RNRPropertySearchSerializer
     permission_classes = [IsAuthenticated, ]
+    renderer_classes = [RNRAPIJSONRenderer, ]
 
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
@@ -40,6 +43,7 @@ class RNRPropertySearchAPIView(APIView):
 
 class RNRGetPropertyProfileAPIView(APIView):
     permission_classes = [IsAuthenticated, ]
+    renderer_classes = [RNRAPIJSONRenderer, ]
 
     def get(self, *args, **kwargs):
         rnr_property_id = kwargs.get("rnr_property_id")
@@ -53,6 +57,7 @@ class RNRGetPropertyProfileAPIView(APIView):
 class RNRSearchPropertyAvailableRooms(APIView):
     serializer_class = RNRPropertyRoomsAvailabilitySerializer
     permission_classes = [IsAuthenticated, ]
+    renderer_classes = [RNRAPIJSONRenderer, ]
 
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
@@ -67,6 +72,7 @@ class RNRSearchPropertyAvailableRooms(APIView):
 class RNRReserveRoomHoldAPIView(APIView):
     serializer_class = RNRRoomReservationSerializer
     permission_classes = [IsAuthenticated, ]
+    renderer_classes = [RNRAPIJSONRenderer, ]
 
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
@@ -80,6 +86,7 @@ class RNRReserveRoomHoldAPIView(APIView):
 class RNRConfirmReservationAPIView(APIView):
     serializer_class = RNRRoomReservationConfirmSerializer
     permission_classes = [IsAuthenticated, ]
+    renderer_classes = [RNRAPIJSONRenderer, ]
 
     def post(self, *args, **kwargs):
         serializer = self.serializer_class(data=self.request.data)
@@ -91,6 +98,7 @@ class RNRConfirmReservationAPIView(APIView):
 
 @api_view(http_method_names=["POST", ])
 @permission_classes([IsAuthenticated, ])
+@renderer_classes([RNRAPIJSONRenderer, ])
 def compare_rnr_rooms_api_view(request):
     serializer = RNRRoomCompareSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -101,6 +109,7 @@ def compare_rnr_rooms_api_view(request):
 
 @api_view(["POST", ])
 @permission_classes([IsAuthenticated, ])
+@renderer_classes([RNRAPIJSONRenderer, ])
 def ask_for_refund_api_view(request):
     serializer = ReservationRefundSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)

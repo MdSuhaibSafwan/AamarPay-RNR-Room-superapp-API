@@ -134,17 +134,17 @@ class RNRRoomReservationConfirmSerializer(serializers.Serializer):
         data = rnr_adapter.rnr_confirm_reservation(self.validated_data.get("reservation_id"), self.validated_data.get("mer_txid"))
         return structure_api_data_or_send_validation_error(data, raise_exception=True)
     
-    # def validate(self, attrs):
-    #     reservation_id = attrs["reservation_id"]
-    #     mer_txid = attrs["mer_txid"]
-    #     pg = AamarpayPgAdapter()
-    #     pg_verification_data = pg.verify_transaction(mer_txid, reservation_id) 
-    #     # verifying transaction and getting an object
-    #     verified = pg_verification_data.get("verified")
-    #     if not verified:
-    #         raise serializers.ValidationError(pg_verification_data)
+    def validate(self, attrs):
+        reservation_id = attrs["reservation_id"]
+        mer_txid = attrs["mer_txid"]
+        pg = AamarpayPgAdapter()
+        pg_verification_data = pg.verify_transaction(mer_txid, reservation_id) 
+        # verifying transaction and getting an object
+        verified = pg_verification_data.get("verified")
+        if not verified:
+            raise serializers.ValidationError(pg_verification_data)
         
-    #     return super().validate(attrs)
+        return super().validate(attrs)
 
 
 class RNRRoomCompareSerializer(serializers.Serializer):

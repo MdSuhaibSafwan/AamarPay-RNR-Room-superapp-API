@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils import timezone
 from ..adapters import RNRRoomsAdapter, AamarpayPgAdapter
 from ..models import RNRRoomReservation
+from ..utils import structure_api_data_or_send_validation_error
 
 
 class RNRPropertySearchSerializer(serializers.Serializer):
@@ -29,7 +30,7 @@ class RNRPropertySearchSerializer(serializers.Serializer):
         if data.get("success") is not True:
             raise serializers.ValidationError(data.get("api_data"))
         
-        return data
+        return structure_api_data_or_send_validation_error(data, raise_exception=True)
     
     def validate_check_in(self, val):
         now = timezone.now().date()
@@ -53,12 +54,7 @@ class RNRSearchDestinationSerializer(serializers.Serializer):
         destination = self.validated_data["destination"]
         rnr_adapter = RNRRoomsAdapter()
         data = rnr_adapter.rnr_search_destination(destination) 
-        # destination can be all 64 districts here searching the destination
-        succeeded = data.get("success", False)
-        if not succeeded:
-            raise serializers.ValidationError(data.get("api_data"))
-
-        return data
+        return structure_api_data_or_send_validation_error(data, raise_exception=True)
 
 
 class RNRPropertyRoomsAvailabilitySerializer(serializers.Serializer):
@@ -70,10 +66,7 @@ class RNRPropertyRoomsAvailabilitySerializer(serializers.Serializer):
 
         self.validated_data["property_id"] = self.context.get("property_id")
         data = rnr_adapter.rnr_check_available_property_rooms(self.validated_data)
-        if data.get("success") is not True:
-            raise serializers.ValidationError(data.get("api_data"))
-        
-        return data
+        return structure_api_data_or_send_validation_error(data, raise_exception=True)
 
     def validate(self, attrs):
         c_in = attrs["check_in"]
@@ -117,10 +110,7 @@ class RNRRoomReservationSerializer(serializers.Serializer):
         del self.validated_data["rooms"]
         self.validated_data["user"] = self.context.get("request").user # getting current authenticated user from request
         data = rnr_adapter.rnr_reserve_rooms(self.validated_data) # reserving rooms from validated data
-        if data.get("success") is not True:
-            raise serializers.ValidationError(data.get("api_data"))
-        
-        return data
+        return structure_api_data_or_send_validation_error(data, raise_exception=True)
 
     def validate_guest_mobile_no(self, val):
         matches = re.findall("[+]880\d{10}", val)
@@ -142,22 +132,19 @@ class RNRRoomReservationConfirmSerializer(serializers.Serializer):
     def request_to_rnr_api(self):
         rnr_adapter = RNRRoomsAdapter()
         data = rnr_adapter.rnr_confirm_reservation(self.validated_data.get("reservation_id"), self.validated_data.get("mer_txid"))
-        if data.get("success") is not True:
-            raise serializers.ValidationError(data.get("api_data"))
-
-        return data
+        return structure_api_data_or_send_validation_error(data, raise_exception=True)
     
-    def validate(self, attrs):
-        reservation_id = attrs["reservation_id"]
-        mer_txid = attrs["mer_txid"]
-        pg = AamarpayPgAdapter()
-        pg_verification_data = pg.verify_transaction(mer_txid, reservation_id) 
-        # verifying transaction and getting an object
-        verified = pg_verification_data.get("verified")
-        if not verified:
-            raise serializers.ValidationError(pg_verification_data)
+    # def validate(self, attrs):
+    #     reservation_id = attrs["reservation_id"]
+    #     mer_txid = attrs["mer_txid"]
+    #     pg = AamarpayPgAdapter()
+    #     pg_verification_data = pg.verify_transaction(mer_txid, reservation_id) 
+    #     # verifying transaction and getting an object
+    #     verified = pg_verification_data.get("verified")
+    #     if not verified:
+    #         raise serializers.ValidationError(pg_verification_data)
         
-        return super().validate(attrs)
+    #     return super().validate(attrs)
 
 
 class RNRRoomCompareSerializer(serializers.Serializer):
@@ -221,4 +208,4 @@ class ReservationRefundSerializer(serializers.Serializer):
     def request_rnr_api(self):
         adapter = RNRRoomsAdapter()
         data = adapter.ask_for_refund(self.validated_data) # adding to refund table with validated data
-        return data
+        return structure_api_data_or_send_validation_error(data, raise_exception=True)

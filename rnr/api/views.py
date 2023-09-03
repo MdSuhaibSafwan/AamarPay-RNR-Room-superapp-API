@@ -12,6 +12,7 @@ from rest_framework.exceptions import ValidationError, NotFound, PermissionDenie
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.viewsets import ModelViewSet
 from .permissions import RNRRoomComparePermission, IsAuthenticated
+from ..utils import structure_api_data_or_send_validation_error
 
 
 class RNRSearchDesinationAPIView(APIView):
@@ -45,9 +46,7 @@ class RNRGetPropertyProfileAPIView(APIView):
         self.check_permissions(request=self.request)
         adapter = RNRRoomsAdapter()
         data = adapter.rnr_get_property_profile(rnr_property_id)
-        if data.get("success") == False:
-            raise NotFound(data.get("api_data"))
-
+        data = structure_api_data_or_send_validation_error(data, raise_exception=True)
         return Response(data=data, status=status.HTTP_200_OK)
 
 

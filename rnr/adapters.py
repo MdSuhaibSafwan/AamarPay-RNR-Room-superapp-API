@@ -308,17 +308,17 @@ class AamarpayPgAdapter:
         data = self.search_transaction(mer_txid)
         pg_status_code = data.get("status_code", None)
         if pg_status_code is None:
-            return {"verified": False, "data": data, "status": "invalid request id or store id"}
+            return {"verified": False, "data": data, "error_msg": "invalid request id or store id"}
 
         if pg_status_code != 2:
-            return {"verified": False, "data": data, "status": "payment not successfull"}
+            return {"verified": False, "data": data, "error_msg": "payment not successfull"}
         
         pg_meta_reservation_id = data.get("opt_c")
         if pg_meta_reservation_id is None:
-            return {"verified": False, "data": data, "status": "Reservation id not provided"}
+            return {"verified": False, "data": data, "error_msg": "Reservation id not provided"}
         
         if reservation_id != pg_meta_reservation_id:
-            return {"verified": False, "data": data, "status": "Reservation id provided does not match the pg meta reservation id"}
+            return {"verified": False, "data": data, "error_msg": "Reservation id provided does not match the pg meta reservation id"}
 
         return {"verified": True, "data": data}
 

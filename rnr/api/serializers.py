@@ -123,6 +123,15 @@ class RNRRoomReservationSerializer(serializers.Serializer):
         if matches.__len__() < 1:
             raise serializers.ValidationError("provide correct email format")
         return val
+    
+    def validate_rooms(self, rooms):
+        for room in rooms:
+            room_id = room.get("id")
+            room_quantity = int(room.get("quantity"))
+            if room_quantity <= 0:
+                raise serializers.ValidationError("Room Quantity cannot be less than 1")
+
+        return rooms
 
 
 class RNRRoomReservationConfirmSerializer(serializers.Serializer):

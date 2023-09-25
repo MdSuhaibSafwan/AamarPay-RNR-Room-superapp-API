@@ -101,4 +101,8 @@ RNR_API_SECRET_KEY = os.environ.get("RNR_API_SECRET_KEY")
 RNR_USERNAME = os.environ.get("RNR_USERNAME")
 RNR_PASSWORD = os.environ.get("RNR_PASSWORD")
 
+AAMARPAY_DEV_URL = "http://sandbox.aamarpay.com/"
+AAMARPAY_STORE_ID = os.environ.get("AAMARPAY_STORE_ID")
+AAMARPAY_SIGNATURE_KEY = os.environ.get("AAMARPAY_SIGNATURE_KEY")
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

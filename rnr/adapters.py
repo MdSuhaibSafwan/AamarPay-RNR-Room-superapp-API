@@ -1,6 +1,6 @@
 import json
 import requests
-from .models import RNRAccessToken
+from .models import RNRAccessToken, RNRRoomReservation, RNRRoomReservationRefund
 from django.conf import settings
 from django.db import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
@@ -161,11 +161,12 @@ class RNRRoomsAdapter:
         data = self.rnr_price_check(payload)
         return data.get("success", False)
 
-    def rnr_reserve_rooms(self, payload):
-        # print(payload)
+    def rnr_reserve_rooms(self, payload: dict):
+        property_id = payload.get("property_id")
+        user = payload.pop("user")
         price_check_payload = {
             "search_id": payload.get("search_id"),
-            "property_id": payload.get("property_id"),
+            "property_id": property_id,
             "rooms": payload.get("rooms_details")
         }
         # print("payload ", price_check_payload)
@@ -183,12 +184,142 @@ class RNRRoomsAdapter:
             return resp_data
         
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/hold/"
-        # print("Valid ", is_valid)
-        # print("data ", payload)
         data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
+        if data.get("success") == True:
+            api_data = data.get("api_data")
+            self.insert_reservation_to_db(api_data, property_id=property_id, user=user)
+
         return data
     
-    def rnr_confirm_reservation(self, reservation_id):
+    def rnr_confirm_reservation(self, reservation_id, mer_txid=None):
+        if mer_txid is None:
+            return self.make_error(["provide merchant transaction id"])
+        
+        query = ""
+        query_seperator = "?"
+        data = {
+            "store_id": settings.AAMARPAY_STORE_ID,
+            "signature_key": settings.AAMARPAY_SIGNATURE_KEY,
+            "type": "json",
+            "request_id": mer_txid
+        }
+        for i in data.keys():
+            val = data[i]
+            query += query_seperator
+            query += f"{i}={val}"
+            query_seperator = "&"
+
+        url = f"{settings.AAMARPAY_DEV_URL}/api/v1/trxcheck/request.php{query}"
+        r = requests.get(url)
+        data = r.json()
+        ap_status_code = data.get("status_code", None)
+        if ap_status_code is None:
+            return self.make_error(["Invalid merchant transaction id provided"])
+        if ap_status_code != 2:
+            return self.make_error(["Payment not successfull"])   
+        
+        pg_txid = data.get("pg_txid")
+            
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
+        transaction_code = data.get("api_data").get("data")["payment"]["transaction_code"]
+        self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code, 
+                                       mer_txid=mer_txid, pg_txid=pg_txid)
         return data
+    
+    def insert_reservation_to_db(self, data: dict, **kwargs):
+        data = data.get("data")
+        reservation_hold_data = {
+            "reservation_id": data.get("id"),
+            "check_in": data.get("check_in"),
+            "check_out": data.get("check_out"),
+            "amount": data.get("grand_total_rate"),
+            "currency": data.get("currency"),
+            "property_id": data.get("property_id", kwargs.get("property_id", None)),
+            "user": data.get("user", kwargs.get("user", None)),
+            "currency": data.get("currency"),
+        }
+
+        obj = RNRRoomReservation.objects.create(**reservation_hold_data)    
+        return obj
+    
+    def confirm_reservation_in_db(self, data: dict={}, **kwargs):
+        reservation_id = data.get("reservation_id", kwargs.get("reservation_id", None))
+        transaction_code = data.get("transaction_code", kwargs.get("transaction_code", None))
+        pg_txid = data.get("pg_txid", kwargs.get("pg_txid", None))
+        mer_txid = data.get("mer_txid", kwargs.get("mer_txid", None))
+    
+        try:
+            obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
+        except ObjectDoesNotExist:
+            return None
+        
+        obj.is_active = True
+        obj.rnr_transaction_code = transaction_code
+        obj.pg_txid = pg_txid
+        obj.mer_txid = mer_txid
+        obj.save()
+        return obj
+    
+    def ask_for_refund(self, data: dict):
+        reservation_id = data.get("reservation_id", None)
+        try:
+            reservation_obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
+        except ObjectDoesNotExist:
+            return self.make_error("Reservation id not found")
+        res_ref_obj, created = RNRRoomReservationRefund.objects.get_or_create(reservation=reservation_obj)
+        return {
+                "success": False,
+                "error": True,
+                "message": "Reservation added for refund",
+                "reservation_refund_id": res_ref_obj.id,
+                "reservation_id": reservation_obj.reservation_id
+        }
+
+
+class AamarpayPgAdapter:
+
+    def __init__(self):
+        self.store_id = settings.AAMARPAY_STORE_ID
+        self.signature_key = settings.AAMARPAY_SIGNATURE_KEY
+        self.dev_url = settings.AAMARPAY_DEV_URL
+
+    def search_transaction(self, mer_txid):
+        url_params = {
+            "request_id": mer_txid,
+            "store_id": self.store_id,
+            "signature_key": self.signature_key,
+            "type": "json"
+        }
+        query = ""
+        query_seperator = "?"
+        
+        for i in url_params.keys():
+            val = url_params[i]
+            query += query_seperator
+            query += f"{i}={val}"
+            query_seperator = "&"
+
+        url = f"{settings.AAMARPAY_DEV_URL}/api/v1/trxcheck/request.php{query}"
+        r = requests.get(url, )
+        return r.json()
+    
+    def verify_transaction(self, mer_txid, reservation_id):
+        data = self.search_transaction(mer_txid)
+        pg_status_code = data.get("status_code", None)
+        if pg_status_code is None:
+            return {"verified": False, "data": data, "error_msg": "invalid request id or store id"}
+
+        if pg_status_code != 2:
+            return {"verified": False, "data": data, "error_msg": "payment not successfull"}
+        
+        pg_meta_reservation_id = data.get("opt_c")
+        if pg_meta_reservation_id is None:
+            return {"verified": False, "data": data, "error_msg": "Reservation id not provided"}
+        
+        if reservation_id != pg_meta_reservation_id:
+            return {"verified": False, "data": data, "error_msg": "Reservation id provided does not match the pg meta reservation id"}
+
+        return {"verified": True, "data": data}
+
+

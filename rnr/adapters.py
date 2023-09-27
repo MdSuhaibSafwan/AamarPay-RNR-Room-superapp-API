@@ -15,7 +15,12 @@ class RNRRoomsAdapter:
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/identity/token/grant"
         return url
     
-    def get_authentication_token(self, access_token: RNRAccessToken=None):
+    def get_authentication_token(self, access_token: RNRAccessToken=None, make_new=False):
+        if make_new:
+            obj = self.request_rnr_access_token()
+            self.access_token = obj
+            return self.access_token
+        
         if not access_token:
             qs = RNRAccessToken.objects.filter(expired=False)
             if not qs.exists():
@@ -40,6 +45,10 @@ class RNRRoomsAdapter:
         headers = self.get_headers()
         payload = self.get_authentication_payload()
         url = self.get_authentication_url()
+        # print("Authentication headers", headers)
+        # print("Authentication payload", payload)
+        # print("Authentication url", url)
+
         r = requests.post(url, data=json.dumps(payload), headers=headers)
         if r.status_code != 200:
             raise ValueError(r.text)
@@ -99,7 +108,7 @@ class RNRRoomsAdapter:
         
         if r.status_code == 401:
             print("Un authorized")
-            self.get_authentication_token()
+            self.get_authentication_token(make_new=True)
             return self.request_a_url_and_get_data(url, method, **kwargs)
         
         return self.make_error(r.json())

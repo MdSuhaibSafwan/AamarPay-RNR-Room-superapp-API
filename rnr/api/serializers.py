@@ -121,6 +121,13 @@ class RNRRoomReservationSerializer(serializers.Serializer):
         val = "+88" + val
         # print("Phone number ", val)
         return val
+    
+    def validate_guest_name(self, value):
+        matches = re.findall("[A-Za-z]", value)
+        if len(matches) < 1:
+            raise serializers.ValidationError("Invalid name provided")
+
+        return value
 
     def validate_guest_email(self, val):
         matches = re.findall("\w+@\w+[.]com", val) # checking email format via regular expression

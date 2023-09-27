@@ -302,6 +302,15 @@ class RNRRoomsAdapter:
                 "reservation_refund_id": res_ref_obj.id,
                 "reservation_id": reservation_obj.reservation_id
         }
+    
+    def check_rnr_wallet_balance(self):
+        url = ""
+        params = {}
+        r = requests.get(url, params=params)
+        data = r.json()
+
+        return data
+
 
 
 class AamarpayPgAdapter:

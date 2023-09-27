@@ -5,6 +5,7 @@ from django.utils import timezone
 from ..adapters import RNRRoomsAdapter, AamarpayPgAdapter
 from ..models import RNRRoomReservation
 from ..utils import structure_api_data_or_send_validation_error
+from django.utils import timezone
 
 
 class RNRPropertySearchSerializer(serializers.Serializer):
@@ -161,6 +162,13 @@ class RNRRoomCompareSerializer(serializers.Serializer):
     rooms = serializers.ListField()
     check_in = serializers.DateField()
     check_out = serializers.DateField()
+
+    def validate_check_in(self, value):
+        now = timezone.now()
+        if value < now.date():
+            raise serializers.ValidationError("Check in date cannot be less than today")
+        
+        return value
 
     def validate(self, attrs):
         c_in = attrs["check_in"]

@@ -5,6 +5,7 @@ from django.utils import timezone
 from ..adapters import RNRRoomsAdapter, AamarpayPgAdapter
 from ..models import RNRRoomReservation
 from ..utils import structure_api_data_or_send_validation_error
+from django.utils import timezone
 
 
 class RNRPropertySearchSerializer(serializers.Serializer):
@@ -113,10 +114,20 @@ class RNRRoomReservationSerializer(serializers.Serializer):
         return structure_api_data_or_send_validation_error(data, raise_exception=True)
 
     def validate_guest_mobile_no(self, val):
-        matches = re.findall("[+]880\d{10}", val)
+        matches = re.findall("^01[3-9]\d{8}", val)
+        print("Matches ", matches)
         if matches.__len__() < 1:
             raise serializers.ValidationError("provide correct phone format")
+        val = "+88" + val
+        # print("Phone number ", val)
         return val
+    
+    def validate_guest_name(self, value):
+        matches = re.findall("[A-Za-z]", value)
+        if len(matches) < 1:
+            raise serializers.ValidationError("Invalid name provided")
+
+        return value
 
     def validate_guest_email(self, val):
         matches = re.findall("\w+@\w+[.]com", val) # checking email format via regular expression
@@ -162,6 +173,13 @@ class RNRRoomCompareSerializer(serializers.Serializer):
     check_in = serializers.DateField()
     check_out = serializers.DateField()
 
+    def validate_check_in(self, value):
+        now = timezone.now()
+        if value < now.date():
+            raise serializers.ValidationError("Check in date cannot be less than today")
+        
+        return value
+
     def validate(self, attrs):
         c_in = attrs["check_in"]
         c_out = attrs["check_out"]
@@ -190,7 +208,6 @@ class RNRRoomCompareSerializer(serializers.Serializer):
             if room_id in rooms_filter:
                 rooms_filter.pop(rooms_filter.index(room_id))
                 filtered_rooms_list.append(room)
-        # via this loop we are checking if all the rooms provided are available there
 
         if raise_exception == True:
             if rooms_filter.__len__() > 0:

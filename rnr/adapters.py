@@ -143,10 +143,12 @@ class RNRRoomsAdapter:
             data_lst = data.get("api_data").get("data")
             for each_data in data_lst:
                 if each_data.get("destination_type") == "property":
+                    print("Counting", counter)
                     counter_lst.append(counter)
                 
                 counter += 1   
-     
+
+            counter_lst.reverse()
             for i in counter_lst:
                 try:
                     del data_lst[i]

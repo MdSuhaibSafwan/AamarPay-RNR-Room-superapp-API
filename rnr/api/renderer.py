@@ -17,4 +17,7 @@ class RNRAPIJSONRenderer(JSONRenderer):
             formatted_data["error"] = True
             formatted_data["success"] = False
 
+        if type(data.get("data")) == type([]):
+            formatted_data["total"] = len(data.get("data"))
+
         return super().render(formatted_data, accepted_media_type, renderer_context)

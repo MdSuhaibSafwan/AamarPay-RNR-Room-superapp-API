@@ -128,6 +128,22 @@ class RNRRoomsAdapter:
     def rnr_search_destination(self, destination):
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/destination/{destination}/"
         data = self.request_a_url_and_get_data(url, method="get")
+        if data.get("success") == True:
+            counter = 0
+            counter_lst = []
+            data_lst = data.get("api_data").get("data")
+            for each_data in data_lst:
+                if each_data.get("destination_type") == "property":
+                    counter_lst.append(counter)
+                
+                counter += 1   
+     
+            for i in counter_lst:
+                try:
+                    del data_lst[i]
+                except Exception as e:
+                    print(e)
+
         return data
     
     def rnr_get_property_profile(self, property_id):

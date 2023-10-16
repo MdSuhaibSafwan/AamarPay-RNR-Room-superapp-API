@@ -262,14 +262,21 @@ class RNRRoomsAdapter:
         
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/hold/"
         payload["search_id"] = search_id
-        del payload["check_in"]; del payload["check_out"]
-        del payload["user"]
+        user = payload["user"]
+        payload = self.get_payload_for_reservation_hold(payload)
         data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
         if data.get("success") == True:
             api_data = data.get("api_data")
             self.insert_reservation_to_db(api_data, property_id=property_id, user=user)
 
         return data
+
+    def get_payload_for_reservation_hold(self, payload):
+        del payload["check_in"]; del payload["check_out"]
+        del payload["user"]
+        payload["rooms_details"] = payload["rooms"]
+        del payload["rooms"]
+        return payload
 
     def is_balance_available(self, total_cost):
         wallet_balance = self.get_wallet_balance()

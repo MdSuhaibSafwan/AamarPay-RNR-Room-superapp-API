@@ -108,8 +108,6 @@ class RNRRoomReservationSerializer(serializers.Serializer):
 
     def request_to_rnr_api(self):
         rnr_adapter = RNRRoomsAdapter() # initialized rnr adapter
-        # self.validated_data["rooms_details"] = self.validated_data["rooms"]
-        # del self.validated_data["rooms"]
         self.validated_data["user"] = self.context.get("request").user # getting current authenticated user from request
         data = rnr_adapter.rnr_reserve_rooms(self.validated_data) # reserving rooms from validated data
         return structure_api_data_or_send_validation_error(data, raise_exception=True)

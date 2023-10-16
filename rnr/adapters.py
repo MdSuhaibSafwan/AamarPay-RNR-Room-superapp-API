@@ -189,27 +189,49 @@ class RNRRoomsAdapter:
         return data.get("success", False)
 
     def rnr_reserve_rooms(self, payload: dict):
-        property_id = payload.get("property_id")
-        user = payload.pop("user")
-        price_check_payload = {
-            "search_id": payload.get("search_id"),
-            "property_id": property_id,
-            "rooms": payload.get("rooms_details")
+        """
+            STEP-1 --> BY PROPERTY ROOMS AVAILABILITY GET TOTAL PRICE
+            STEP-2 --> USE PRICE CHECK API VIA SEARCH ID THAT GOT FROM STEP-1
+            STEP-3 --> USE WALLET BALANCE CHECK API AND COMPARE TOTAL PRICE WITH BALANCE
+            STEP-4 --> IF THERE IS ANY ISSUES GIVE A VALIDATION ERROR
+            STEP-5 --> IF EVERYTHING IS FINE HOLD THE RESERVATION BY SENDING A REQUEST
+            STEP-6 --> INSERT RESERVATION TO DB 
+        """
+        property_rooms_availability_data = {
+            "check_in": payload.get("check_in"),
+            "check_out": payload.get("check_out"),
+            "property_id": payload.get("property_id"),
         }
-        
-        has_available_balance = self.check_rooms_with_available_balance(payload.get("rooms_details"))
-        if not has_available_balance:
+        available_room_data = self.rnr_check_available_property_rooms(property_rooms_availability_data)
+        if available_room_data.get("success") != True:
             resp_data = {
-                "api_data": { 
-                    "validation": "Failed",
-                    "price": "Insufficient Balance",
-                    "message": "Insufficient Balance",
-                },
+                "api_data": available_room_data["api_data"],
                 "success": False,
                 "error": True
             }
             return resp_data
-        
+
+        available_room_data = available_room_data["api_data"]["data"]
+        available_room_list = available_room_data["rooms"]
+        search_id = available_room_data["search_id"]
+        rooms_to_book_list = payload.get("rooms")
+
+        is_valid, data = self.validate_room_to_book_with_available_rooms(rooms_to_book_list, available_room_list)
+        if not is_valid:
+            resp_data = {
+                "api_data": data,
+                "message": "Invalid rooms to book",
+                "success": False,
+                "error": True
+            }
+
+        total_cost = data.get("total")
+        property_id = payload.get("property_id")
+        price_check_payload = {
+            "search_id": search_id,
+            "property_id": property_id,
+            "rooms": rooms_to_book_list
+        }
         is_valid = self.rnr_validate_price_check(price_check_payload)
         if not is_valid:
             resp_data = {
@@ -222,17 +244,61 @@ class RNRRoomsAdapter:
                 "error": True
             }
             return resp_data
+
+        # has_available_balance = self.is_balance_available(total_cost)
+        # if not has_available_balance:
+        #     resp_data = {
+        #         "api_data": { 
+        #             "validation": "Failed",
+        #             "price": "Insufficient Balance",
+        #             "message": "Insufficient Balance",
+        #         },
+        #         "success": False,
+        #         "error": True
+        #     }
+        #     return resp_data
+        # breakpoint()
+
         
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/hold/"
-
-
+        payload["search_id"] = search_id
+        del payload["check_in"]; del payload["check_out"]
+        del payload["user"]
         data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
         if data.get("success") == True:
             api_data = data.get("api_data")
             self.insert_reservation_to_db(api_data, property_id=property_id, user=user)
 
         return data
-    
+
+    def is_balance_available(self, total_cost):
+        wallet_balance = self.get_wallet_balance()
+        return wallet_balance > total_cost
+
+    def validate_room_to_book_with_available_rooms(self, rooms_to_book_list, available_room_list):
+        if (len(rooms_to_book_list) > len(available_room_list)):
+            return False, {"status": "Failed"}
+        total_cost = 0
+        for i_room in rooms_to_book_list:
+            found_room = False
+            for j_room in available_room_list:
+                if i_room["id"] == j_room["id"]:
+                    found_room = True
+                    total_cost += self.find_total_cost_of_room(j_room['pricing']["guest"]["per_night"])
+                    break
+
+            if not found_room:
+                return False, {"status": "Failed"}
+
+        return True, {"status": "Success", "total": total_cost}
+
+    def find_total_cost_of_room(self, data):
+        net_rate = data.get("net_rate", None)
+        vat = data.get("vat", None)
+        service_charge = data.get("service_charge", None)
+        return float(net_rate) + float(vat) + float(service_charge)
+
+
     def rnr_confirm_reservation(self, reservation_id, mer_txid=None):
         # if mer_txid is None:
         #     return self.make_error(["provide merchant transaction id"])
@@ -317,11 +383,6 @@ class RNRRoomsAdapter:
             total += total_room_cost
 
         return total
-    
-    def check_rooms_with_available_balance(self, rooms):
-        costing = self.get_total_cost_for_rooms(rooms)
-        wallet_balance = self.get_wallet_balance()
-        return wallet_balance > costing
 
     def ask_for_refund(self, data: dict):
         reservation_id = data.get("reservation_id", None)

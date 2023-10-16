@@ -3,7 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.generics import CreateAPIView, ListAPIView
 from .serializers import (RNRSearchDestinationSerializer, RNRPropertySearchSerializer,
             RNRPropertyRoomsAvailabilitySerializer, RNRRoomReservationSerializer,
-            RNRRoomReservationConfirmSerializer, RNRRoomCompareSerializer, ReservationRefundSerializer)
+            RNRRoomReservationConfirmSerializer, RNRRoomCompareSerializer, ReservationRefundSerializer,
+            RNRRoomCancelReservationSerializer)
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
@@ -85,6 +86,19 @@ class RNRReserveRoomHoldAPIView(APIView):
 
 class RNRConfirmReservationAPIView(APIView):
     serializer_class = RNRRoomReservationConfirmSerializer
+    permission_classes = [IsAuthenticated, ]
+    renderer_classes = [RNRAPIJSONRenderer, ]
+
+    def post(self, *args, **kwargs):
+        serializer = self.serializer_class(data=self.request.data)
+        self.check_permissions(request=self.request)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.request_to_rnr_api()
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class CancelReservationAPIView(APIView):
+    serializer_class = RNRRoomCancelReservationSerializer
     permission_classes = [IsAuthenticated, ]
     renderer_classes = [RNRAPIJSONRenderer, ]
 

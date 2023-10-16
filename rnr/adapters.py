@@ -196,7 +196,20 @@ class RNRRoomsAdapter:
             "property_id": property_id,
             "rooms": payload.get("rooms_details")
         }
-        # print("payload ", price_check_payload)
+        
+        has_available_balance = self.check_rooms_with_available_balance(payload.get("rooms_details"))
+        if not has_available_balance:
+            resp_data = {
+                "api_data": { 
+                    "validation": "Failed",
+                    "price": "Insufficient Balance",
+                    "message": "Insufficient Balance",
+                },
+                "success": False,
+                "error": True
+            }
+            return resp_data
+        
         is_valid = self.rnr_validate_price_check(price_check_payload)
         if not is_valid:
             resp_data = {
@@ -211,6 +224,8 @@ class RNRRoomsAdapter:
             return resp_data
         
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/hold/"
+
+
         data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
         if data.get("success") == True:
             api_data = data.get("api_data")
@@ -219,37 +234,39 @@ class RNRRoomsAdapter:
         return data
     
     def rnr_confirm_reservation(self, reservation_id, mer_txid=None):
-        if mer_txid is None:
-            return self.make_error(["provide merchant transaction id"])
+        # if mer_txid is None:
+        #     return self.make_error(["provide merchant transaction id"])
         
-        query = ""
-        query_seperator = "?"
-        data = {
-            "store_id": settings.AAMARPAY_STORE_ID,
-            "signature_key": settings.AAMARPAY_SIGNATURE_KEY,
-            "type": "json",
-            "request_id": mer_txid
-        }
-        for i in data.keys():
-            val = data[i]
-            query += query_seperator
-            query += f"{i}={val}"
-            query_seperator = "&"
+        # query = ""
+        # query_seperator = "?"
+        # data = {
+        #     "store_id": settings.AAMARPAY_STORE_ID,
+        #     "signature_key": settings.AAMARPAY_SIGNATURE_KEY,
+        #     "type": "json",
+        #     "request_id": mer_txid
+        # }
+        # for i in data.keys():
+        #     val = data[i]
+        #     query += query_seperator
+        #     query += f"{i}={val}"
+        #     query_seperator = "&"
 
-        url = f"{settings.AAMARPAY_DEV_URL}/api/v1/trxcheck/request.php{query}"
-        r = requests.get(url)
-        data = r.json()
-        ap_status_code = data.get("status_code", None)
-        if ap_status_code is None:
-            return self.make_error(["Invalid merchant transaction id provided"])
-        if ap_status_code != 2:
-            return self.make_error(["Payment not successfull"])   
+        # url = f"{settings.AAMARPAY_DEV_URL}/api/v1/trxcheck/request.php{query}"
+        # r = requests.get(url)
+        # data = r.json()
+        # ap_status_code = data.get("status_code", None)
+        # if ap_status_code is None:
+        #     return self.make_error(["Invalid merchant transaction id provided"])
+        # if ap_status_code != 2:
+        #     return self.make_error(["Payment not successfull"])   
         
-        pg_txid = data.get("pg_txid")
+        # pg_txid = data.get("pg_txid")
+        pg_txid = None
             
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
-        transaction_code = data.get("api_data").get("data")["payment"]["transaction_code"]
+        # transaction_code = data.get("api_data").get("data")["payment"]["transaction_code"]
+        transaction_code = None
         self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code, 
                                        mer_txid=mer_txid, pg_txid=pg_txid)
         return data
@@ -287,13 +304,32 @@ class RNRRoomsAdapter:
         obj.mer_txid = mer_txid
         obj.save()
         return obj
+
+    def get_total_cost_for_rooms(self, rooms: list):
+        total = 0
+        for room in rooms:
+            breakpoint()
+            pricing = room["pricing"]["guest"]
+            per_night_charge = pricing["nightly"]["net_rate"]
+            vat = pricing["nightly"]["vat"]
+            service_charge = pricing["nightly"]["service_charge"]
+            total_room_cost = per_night_charge+vat+service_charge
+            total += total_room_cost
+
+        return total
     
+    def check_rooms_with_available_balance(self, rooms):
+        costing = self.get_total_cost_for_rooms(rooms)
+        wallet_balance = self.get_wallet_balance()
+        return wallet_balance > costing
+
     def ask_for_refund(self, data: dict):
         reservation_id = data.get("reservation_id", None)
         try:
             reservation_obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
         except ObjectDoesNotExist:
             return self.make_error("Reservation id not found")
+
         res_ref_obj, created = RNRRoomReservationRefund.objects.get_or_create(reservation=reservation_obj)
         return {
                 "success": False,
@@ -302,15 +338,26 @@ class RNRRoomsAdapter:
                 "reservation_refund_id": res_ref_obj.id,
                 "reservation_id": reservation_obj.reservation_id
         }
-    
-    def check_rnr_wallet_balance(self):
-        url = ""
-        params = {}
-        r = requests.get(url, params=params)
-        data = r.json()
 
+    def cancel_reservation(self, data):
+        reservation_id = data.get("reservation_id")
+        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/cancel/{reservation_id}/"
+        data = self.request_a_url_and_get_data(url, "delete")
+        return data
+    
+    def check_wallet_balance(self):
+        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/wallet/balance/"
+        r = requests.get(url)
+        data = r.json()
         return data
 
+    def get_wallet_balance(self):
+        data = self.check_wallet_balance()
+        success = data.get("status") == "Succeed"
+        if not success:
+            return 0
+
+        return data["data"]["balance"]
 
 
 class AamarpayPgAdapter:

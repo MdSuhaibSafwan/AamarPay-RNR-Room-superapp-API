@@ -96,7 +96,8 @@ class RNRPropertyRoomsAvailabilitySerializer(serializers.Serializer):
 
 
 class RNRRoomReservationSerializer(serializers.Serializer):
-    search_id = serializers.IntegerField()
+    check_in = serializers.DateField()
+    check_out = serializers.DateField()
     property_id = serializers.IntegerField()
     rooms = serializers.ListField()
     guest_name = serializers.CharField(required=True)
@@ -107,11 +108,22 @@ class RNRRoomReservationSerializer(serializers.Serializer):
 
     def request_to_rnr_api(self):
         rnr_adapter = RNRRoomsAdapter() # initialized rnr adapter
-        self.validated_data["rooms_details"] = self.validated_data["rooms"]
-        del self.validated_data["rooms"]
+        # self.validated_data["rooms_details"] = self.validated_data["rooms"]
+        # del self.validated_data["rooms"]
         self.validated_data["user"] = self.context.get("request").user # getting current authenticated user from request
         data = rnr_adapter.rnr_reserve_rooms(self.validated_data) # reserving rooms from validated data
         return structure_api_data_or_send_validation_error(data, raise_exception=True)
+
+    def validate(self, attrs):
+        c_in = attrs["check_in"]
+        c_out = attrs["check_out"]
+        if c_in == c_out:
+            raise serializers.ValidationError("Check in and checkout date cannot be same")
+
+        if c_out < c_in:
+            raise serializers.ValidationError("Check out date cannot be more than check in date")
+    
+        return attrs
 
     def validate_guest_mobile_no(self, val):
         matches = re.findall("^01[3-9]\d{8}", val)
@@ -144,10 +156,24 @@ class RNRRoomReservationSerializer(serializers.Serializer):
 
         return rooms
 
+    def validate_check_in(self, val):
+        now = timezone.now().date()
+        if now > val:   
+            raise serializers.ValidationError("Check in cannot be more than today")
+
+        return val
+
+    def validate_check_out(self, val):
+        now = timezone.now().date()
+        if now > val:   
+            raise serializers.ValidationError("Check out cannot be more than today")
+
+        return val
+
 
 class RNRRoomReservationConfirmSerializer(serializers.Serializer):
     reservation_id = serializers.CharField(required=True)
-    mer_txid = serializers.CharField(required=True)
+    # mer_txid = serializers.CharField(required=True)
 
     def request_to_rnr_api(self):
         rnr_adapter = RNRRoomsAdapter()
@@ -156,13 +182,13 @@ class RNRRoomReservationConfirmSerializer(serializers.Serializer):
     
     def validate(self, attrs):
         reservation_id = attrs["reservation_id"]
-        mer_txid = attrs["mer_txid"]
-        pg = AamarpayPgAdapter()
-        pg_verification_data = pg.verify_transaction(mer_txid, reservation_id) 
-        # verifying transaction and getting an object
-        verified = pg_verification_data.get("verified")
-        if not verified:
-            raise serializers.ValidationError(pg_verification_data)
+        # mer_txid = attrs["mer_txid"]
+        # pg = AamarpayPgAdapter()
+        # pg_verification_data = pg.verify_transaction(mer_txid, reservation_id) 
+        # # verifying transaction and getting an object
+        # verified = pg_verification_data.get("verified")
+        # if not verified:
+        #     raise serializers.ValidationError(pg_verification_data)
         
         return super().validate(attrs)
 
@@ -234,4 +260,20 @@ class ReservationRefundSerializer(serializers.Serializer):
     def request_rnr_api(self):
         adapter = RNRRoomsAdapter()
         data = adapter.ask_for_refund(self.validated_data) # adding to refund table with validated data
+        return structure_api_data_or_send_validation_error(data, raise_exception=True)
+
+
+class RNRRoomCancelReservationSerializer(serializers.Serializer):
+    reservation_id = serializers.CharField()
+
+    def validate_reservation_id(self, value):
+        qs = RNRRoomReservation.objects.filter(reservation_id=value)
+        if not qs.exists():
+            raise serializers.ValidationError("Reservation not found")
+        
+        return value
+
+    def request_to_rnr_api(self):
+        adapter = RNRRoomsAdapter()
+        data = adapter.cancel_reservation(self.validated_data) # canceling a reservation
         return structure_api_data_or_send_validation_error(data, raise_exception=True)

@@ -305,7 +305,6 @@ class RNRRoomsAdapter:
         service_charge = data.get("service_charge", None)
         return float(net_rate) + float(vat) + float(service_charge)
 
-
     def rnr_confirm_reservation(self, reservation_id, mer_txid=None):
         if mer_txid is None:
             return self.make_error(["provide merchant transaction id"])
@@ -381,6 +380,15 @@ class RNRRoomsAdapter:
         reservation_id = data.get("reservation_id")
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/cancel/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, "delete")
+        if data.get("success") != True:
+            return data
+
+        try:
+            reservation_obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
+        except ObjectDoesNotExist:
+            return data
+
+        refund_obj, created = RNRRoomReservationRefund.objects.get_or_create(reservation=reservation_obj)
         return data
     
     def check_wallet_balance(self):

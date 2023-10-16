@@ -171,7 +171,7 @@ class RNRRoomReservationSerializer(serializers.Serializer):
 
 class RNRRoomReservationConfirmSerializer(serializers.Serializer):
     reservation_id = serializers.CharField(required=True)
-    # mer_txid = serializers.CharField(required=True)
+    mer_txid = serializers.CharField(required=True)
 
     def request_to_rnr_api(self):
         rnr_adapter = RNRRoomsAdapter()

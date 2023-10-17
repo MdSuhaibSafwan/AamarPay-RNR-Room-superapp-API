@@ -32,8 +32,8 @@ class RNRAccessToken(models.Model):
 
 class RNRRoomReservation(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    reservation_id = models.IntegerField()
-    property_id = models.IntegerField()
+    reservation_id = models.CharField(max_length=2040000)
+    property_id = models.CharField(max_length=2040000)
     is_active = models.BooleanField(default=False)
     check_in = models.DateField()
     check_out = models.DateField()

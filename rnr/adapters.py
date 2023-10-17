@@ -135,6 +135,7 @@ class RNRRoomsAdapter:
         return data
 
     def rnr_search_destination(self, destination):
+        data = {}
         data["offset"] = 0
         data["limit"] = 10
         query = ""

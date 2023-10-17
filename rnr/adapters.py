@@ -135,7 +135,17 @@ class RNRRoomsAdapter:
         return data
 
     def rnr_search_destination(self, destination):
-        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/destination/{destination}/"
+        data["offset"] = 0
+        data["limit"] = 10
+        query = ""
+        query_seperator = "?"
+        for i in data.keys():
+            val = data[i]
+            query += query_seperator
+            query += f"{i}={val}"
+            query_seperator = "&"
+
+        url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/destination/{destination}/{query}"
         data = self.request_a_url_and_get_data(url, method="get")
         if data.get("success") == True:
             counter = 0

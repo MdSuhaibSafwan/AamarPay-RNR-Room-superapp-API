@@ -1,0 +1,45 @@
+version: "3"
+
+networks:
+    app-tier-rnr-rooms:
+        driver: bridge
+            #    default_pgadmin_app-tier-pgadmin:
+            #        external: true
+
+services:
+    rnr_rooms_db:
+        container_name: rnr_rooms_db
+        image: 'postgres:14.5'
+        user: '0:0'
+        restart: unless-stopped
+        env_file:
+            - .env
+        volumes:
+            - /www/docker_persistent/rnr_rooms/db:/var/lib/postgresql/data
+        networks:
+            - app-tier-rnr-rooms
+              #- default_pgadmin_app-tier-pgadmin
+        ports:
+            - '127.0.0.1:5441:5432'
+
+    rnr_rooms_web:
+        container_name: rnr_rooms_web
+        restart: always
+        depends_on:
+            - rnr_rooms_db
+        user: '0:0'
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: ./deployment/start-app
+        networks:
+            - app-tier-rnr-rooms
+        env_file:
+            - .env
+        ports:
+            - "127.0.0.1:8002:8000"
+        volumes:
+            - .:/app
+            - /www/docker_persistent/rnr_rooms/public/static:/app/static
+            - /www/docker_persistent/rnr_rooms/media:/app/media
+

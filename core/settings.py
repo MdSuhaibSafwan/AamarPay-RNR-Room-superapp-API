@@ -1,12 +1,19 @@
 import os
 from pathlib import Path
+import environ
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-brva9p(aq22h2c%tn$7*)smt5ci3je_zf!^y+7ik72$ct82ivm'
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False)
+)
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-DEBUG = True
+SECRET_KEY = env("SECRET_KEY")
+
+DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = ['rnrrooms.aamarpay.dev', '127.0.0.1']
 
@@ -59,11 +66,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env("DB_NAME"),
+        "USER": env("DB_USER"),
+        "PASSWORD": env("DB_PASS"),
+        "HOST": env("DB_HOST"),
+        "PORT": env("DB_PORT"),
     }
 }
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

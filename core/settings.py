@@ -1,8 +1,6 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
-load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -10,7 +8,11 @@ SECRET_KEY = 'django-insecure-brva9p(aq22h2c%tn$7*)smt5ci3je_zf!^y+7ik72$ct82ivm
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", ]
+ALLOWED_HOSTS = ['rnrrooms.aamarpay.dev', '127.0.0.1']
+
+# CSRF trusted origin
+CSRF_TRUSTED_ORIGINS = ['https://rnrrooms.aamarpay.dev']
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -63,6 +65,8 @@ DATABASES = {
     }
 }
 
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -92,7 +96,11 @@ USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 RNR_HOSTNAME = "beta.api.rnrrooms.com"
 RNR_BASE_URL = "https://{}".format(RNR_HOSTNAME)
@@ -105,4 +113,3 @@ AAMARPAY_DEV_URL = "http://sandbox.aamarpay.com/"
 AAMARPAY_STORE_ID = os.environ.get("AAMARPAY_STORE_ID")
 AAMARPAY_SIGNATURE_KEY = os.environ.get("AAMARPAY_SIGNATURE_KEY")
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

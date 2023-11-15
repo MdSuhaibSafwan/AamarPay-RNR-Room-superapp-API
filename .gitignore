@@ -1,3 +1,13 @@
+#configuration file
+*/config.env
+!.gitignore
+
+#cache files
+*/__pycache__/
+*/*/__pycache__/
+*/*/*/__pycache__/
+
+#media/files
+/media
+/static
 .env
-.sqlite3
-/__pycache__/

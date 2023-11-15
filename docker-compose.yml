@@ -3,8 +3,8 @@ version: "3"
 networks:
     app-tier-rnr-rooms:
         driver: bridge
-            #    default_pgadmin_app-tier-pgadmin:
-            #        external: true
+    default_pgadmin_app-tier-pgadmin:
+        external: true
 
 services:
     rnr_rooms_db:
@@ -18,7 +18,7 @@ services:
             - /www/docker_persistent/rnr_rooms/db:/var/lib/postgresql/data
         networks:
             - app-tier-rnr-rooms
-              #- default_pgadmin_app-tier-pgadmin
+            - default_pgadmin_app-tier-pgadmin
         ports:
             - '127.0.0.1:5441:5432'
 

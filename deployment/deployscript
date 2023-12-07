@@ -1,0 +1,5 @@
+#!/bin/bash
+
+docker-compose build
+docker-compose up -d
+docker restart $(docker ps -a -q --filter "name=rnr_rooms") >/dev/null 2>&1

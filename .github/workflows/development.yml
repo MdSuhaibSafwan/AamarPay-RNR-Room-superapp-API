@@ -1,0 +1,36 @@
+name: aamarPay Super App - RNR Rooms
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  rnr_rooms_deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: 'rnr_rooms_deploy'
+
+      - name: 🚚 Adding Known Hosts
+        run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run Deployement Script
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          command_timeout: 30m
+          script: |
+            cd /www/docker_projects/aamarpay-rnr-rooms
+            git stash
+            git pull origin development
+            chmod +x deployment/*
+            chmod +x deploy.sh
+            sh deploy.sh

@@ -1,16 +1,25 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+import environ
 
-load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-brva9p(aq22h2c%tn$7*)smt5ci3je_zf!^y+7ik72$ct82ivm'
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False)
+)
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-DEBUG = True
+SECRET_KEY = env("SECRET_KEY")
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", ]
+DEBUG = env("DEBUG")
+
+ALLOWED_HOSTS = ['rnrrooms.aamarpay.dev', '127.0.0.1']
+
+# CSRF trusted origin
+CSRF_TRUSTED_ORIGINS = ['https://rnrrooms.aamarpay.dev']
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -57,11 +66,18 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env("DB_NAME"),
+        "USER": env("DB_USER"),
+        "PASSWORD": env("DB_PASS"),
+        "HOST": env("DB_HOST"),
+        "PORT": env("DB_PORT"),
     }
 }
+
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -92,17 +108,24 @@ USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 RNR_HOSTNAME = "beta.api.rnrrooms.com"
+
+RNR_HOSTNAME = env("RNR_HOSTNAME")
 RNR_BASE_URL = "https://{}".format(RNR_HOSTNAME)
-RNR_API_KEY = os.environ.get("RNR_API_KEY")
-RNR_API_SECRET_KEY = os.environ.get("RNR_API_SECRET_KEY")
-RNR_USERNAME = os.environ.get("RNR_USERNAME")
-RNR_PASSWORD = os.environ.get("RNR_PASSWORD")
+RNR_API_KEY = env("RNR_API_KEY")
+RNR_API_SECRET_KEY = env("RNR_API_SECRET_KEY")
+RNR_USERNAME = env("RNR_USERNAME")
+RNR_PASSWORD = env("RNR_PASSWORD")
 
 AAMARPAY_DEV_URL = "http://sandbox.aamarpay.com/"
-AAMARPAY_STORE_ID = os.environ.get("AAMARPAY_STORE_ID")
-AAMARPAY_SIGNATURE_KEY = os.environ.get("AAMARPAY_SIGNATURE_KEY")
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+AAMARPAY_DEV_URL = env("AAMARPAY_DEV_URL")
+AAMARPAY_STORE_ID = env("AAMARPAY_STORE_ID")
+AAMARPAY_SIGNATURE_KEY = env("AAMARPAY_SIGNATURE_KEY")
+

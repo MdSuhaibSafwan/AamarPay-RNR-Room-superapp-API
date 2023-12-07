@@ -15,6 +15,7 @@ from rest_framework.viewsets import ModelViewSet
 from .permissions import RNRRoomComparePermission, IsAuthenticated
 from ..utils import structure_api_data_or_send_validation_error
 from .renderer import RNRAPIJSONRenderer
+from ..models import RNRRoomReservation
 
 
 class RNRSearchDesinationAPIView(APIView):
@@ -118,4 +119,16 @@ def compare_rnr_rooms_api_view(request):
     serializer.is_valid(raise_exception=True)
     data = serializer.make_rnr_request_with_validated_data(raise_exception=True)
 
+    return Response(data, status=status.HTTP_200_OK)
+
+
+
+@api_view(http_method_names=["GET", ])
+@permission_classes([IsAuthenticated, ])
+@renderer_classes([RNRAPIJSONRenderer, ])
+def user_reserve_rooms_history_api_view(request):
+    user = request.user
+    qs = RNRRoomReservation.objects.filter(user=user).order_by("-date_created")
+    serializer = RNRRoomReservationSerializer(qs, many=True)
+    data = serializer.data
     return Response(data, status=status.HTTP_200_OK)

@@ -38,10 +38,18 @@ class RNRRoomReservation(models.Model):
     check_in = models.DateField()
     check_out = models.DateField()
     amount = models.FloatField()
+    rooms = models.JSONField(default=dict)
     rnr_transaction_code = models.CharField(max_length=2040, null=True)
     pg_txid = models.CharField(max_length=2040, null=True)
     mer_txid = models.CharField(max_length=2040, null=True)
     currency = models.CharField(max_length=3)
+
+    guest_name = models.CharField(max_length=500, null=True)
+    guest_email = models.CharField(max_length=500, null=True)
+    guest_mobile_no = models.CharField(max_length=50, null=True)
+    guest_address = models.CharField(max_length=500, null=True)
+    guest_special_request = models.CharField(max_length=500, null=True)
+    
     date_created = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
 

@@ -11,3 +11,6 @@
 /media
 /static
 .env
+.sqlite3
+/__pycache__/
+db.sqlite3

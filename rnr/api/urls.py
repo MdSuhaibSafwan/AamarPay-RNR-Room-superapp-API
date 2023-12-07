@@ -10,5 +10,6 @@ urlpatterns = [
     path("property/rooms/hold-reservation/", views.RNRReserveRoomHoldAPIView.as_view(), ),
     path("property/rooms/confirm-reservation/", views.RNRConfirmReservationAPIView.as_view(), ),
     path("property/rooms/compare-rooms/", views.compare_rnr_rooms_api_view, ),
-    path("property/rooms/cancel-reservation/", views.CancelReservationAPIView.as_view(), )
+    path("property/rooms/cancel-reservation/", views.CancelReservationAPIView.as_view(), ),
+    path("rooms/history/", views.user_reserve_rooms_history_api_view, )
 ] 

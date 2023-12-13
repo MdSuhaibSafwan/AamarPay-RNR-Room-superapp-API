@@ -317,33 +317,14 @@ class RNRRoomsAdapter:
     def rnr_confirm_reservation(self, reservation_id, mer_txid=None):
         if mer_txid is None:
             return self.make_error(["provide merchant transaction id"])
-        
-        query = ""
-        query_seperator = "?"
-        data = {
-            "store_id": settings.AAMARPAY_STORE_ID,
-            "signature_key": settings.AAMARPAY_SIGNATURE_KEY,
-            "type": "json",
-            "request_id": mer_txid
-        }
-        for i in data.keys():
-            val = data[i]
-            query += query_seperator
-            query += f"{i}={val}"
-            query_seperator = "&"
 
-        url = f"{settings.AAMARPAY_DEV_URL}/api/v1/trxcheck/request.php{query}"
-        r = requests.get(url)
-        data = r.json()
-        ap_status_code = data.get("status_code", None)
-        if ap_status_code is None:
-            return self.make_error(["Invalid merchant transaction id provided"])
+        ap_adapter = AamarpayPgAdapter()
+        aamarpay_data = ap_adapter.verify_transaction(mer_txid, reservation_id)
+        if aamarpay_data.get("verified") == False:
+            return self.make_error(aamarpay_data["error_msg"])
 
-        if int(ap_status_code) != 2:
-            return self.make_error(["Payment not successfull"])   
-        
-        pg_txid = data.get("pg_txid")
-            
+        pg_txid = aamarpay_data["data"].get("pg_txid")        
+
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
         if data.get("success") == False:
@@ -459,10 +440,13 @@ class AamarpayPgAdapter:
         if pg_status_code != 2:
             return {"verified": False, "data": data, "error_msg": "payment not successfull"}
         
-        pg_meta_reservation_id = data.get("opt_c")
+        pg_meta_reservation_id = data.get("opt_a")
         if pg_meta_reservation_id is None:
             return {"verified": False, "data": data, "error_msg": "Reservation id not provided"}
         
+        if pg_meta_reservation_id != reservation_id:
+            return {"verified": False, "data": data, "error_msg": "Invalid Reservation id provided"}
+
         if reservation_id != pg_meta_reservation_id:
             return {"verified": False, "data": data, "error_msg": "Reservation id provided does not match the pg meta reservation id"}
 

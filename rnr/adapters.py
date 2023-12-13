@@ -348,6 +348,9 @@ class RNRRoomsAdapter:
             
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
+        if data.get("success") == False:
+            return self.make_error(data["api_data"])
+        
         transaction_code = data.get("api_data").get("data")["payment"]["transaction_code"]
         self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code, 
                                        mer_txid=mer_txid, pg_txid=pg_txid)

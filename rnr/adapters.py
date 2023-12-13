@@ -437,11 +437,12 @@ class AamarpayPgAdapter:
         if pg_status_code is None:
             return {"verified": False, "data": data, "error_msg": "invalid request id or store id"}
 
-        if pg_status_code != 2:
+        if int(pg_status_code) != 2:
             return {"verified": False, "data": data, "error_msg": "payment not successfull"}
         
         pg_meta_reservation_id = data.get("opt_a")
-        if pg_meta_reservation_id is None:
+        
+        if (pg_meta_reservation_id is None) or (pg_meta_reservation_id == ""):
             return {"verified": False, "data": data, "error_msg": "Reservation id not provided"}
         
         if reservation_id != pg_meta_reservation_id:

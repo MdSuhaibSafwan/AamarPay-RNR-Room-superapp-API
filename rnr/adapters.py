@@ -444,9 +444,6 @@ class AamarpayPgAdapter:
         if pg_meta_reservation_id is None:
             return {"verified": False, "data": data, "error_msg": "Reservation id not provided"}
         
-        if pg_meta_reservation_id != reservation_id:
-            return {"verified": False, "data": data, "error_msg": "Invalid Reservation id provided"}
-
         if reservation_id != pg_meta_reservation_id:
             return {"verified": False, "data": data, "error_msg": "Reservation id provided does not match the pg meta reservation id"}
 

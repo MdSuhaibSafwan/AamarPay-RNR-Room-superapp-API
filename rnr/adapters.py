@@ -391,17 +391,16 @@ class RNRRoomsAdapter:
     
     def check_wallet_balance(self):
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/wallet/balance/"
-        r = requests.get(url)
-        data = r.json()
+        data = self.request_a_url_and_get_data(url, method="get")
         return data
 
     def get_wallet_balance(self):
         data = self.check_wallet_balance()
-        success = data.get("status") == "Succeed"
+        success = data.get("success") == True
         if not success:
             return 0
 
-        return data["data"]["balance"]
+        return data["api_data"]["data"]["balance"]
 
 
 class AamarpayPgAdapter:

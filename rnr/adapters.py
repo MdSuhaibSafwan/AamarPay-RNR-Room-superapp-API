@@ -364,6 +364,11 @@ class RNRRoomsAdapter:
             "property_id": data.get("property_id", kwargs.get("property_id", None)),
             "user": data.get("user", kwargs.get("user", None)),
             "currency": data.get("currency"),
+            "guest_name": data.get("guest_name"),
+            "guest_email": data.get("guest_email"),
+            "guest_mobile_no": data.get("guest_mobile_no"),
+            "guest_address": data.get("guest_address"),
+            "guest_special_request": data.get("guest_special_request"),
         }
 
         obj = RNRRoomReservation.objects.create(**reservation_hold_data)    

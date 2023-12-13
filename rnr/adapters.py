@@ -439,12 +439,16 @@ class AamarpayPgAdapter:
         if int(pg_status_code) != 2:
             return {"verified": False, "data": data, "error_msg": "payment not successfull"}
         
-        pg_meta_reservation_id = data.get("opt_a")
+        opt_a = json.loads(data.get("opt_a"))
+        if isinstance(opt_a, dict):
+            pg_meta_reservation_id = opt_a.get("reservation_id", None)
+        else:
+            pg_meta_reservation_id = opt_a
         
         if (pg_meta_reservation_id is None) or (pg_meta_reservation_id == ""):
             return {"verified": False, "data": data, "error_msg": "Reservation id not provided"}
         
-        if reservation_id != pg_meta_reservation_id:
+        if int(reservation_id) != pg_meta_reservation_id:
             return {"verified": False, "data": data, "error_msg": "Reservation id provided does not match the pg meta reservation id"}
 
         return {"verified": True, "data": data}

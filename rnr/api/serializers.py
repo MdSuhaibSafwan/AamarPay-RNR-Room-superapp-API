@@ -100,6 +100,7 @@ class RNRRoomReservationSerializer(serializers.Serializer):
     check_out = serializers.DateField()
     property_id = serializers.IntegerField()
     rooms = serializers.ListField()
+    is_active = serializers.SerializerMethodField()
     guest_name = serializers.CharField(required=True)
     guest_email = serializers.CharField(required=True)
     guest_mobile_no = serializers.CharField(required=True)
@@ -125,7 +126,8 @@ class RNRRoomReservationSerializer(serializers.Serializer):
         reservation_obj.save()
         return reservation_obj
         
-        
+    def get_is_active(self, serializer):
+        return serializer.is_active
 
     def validate(self, attrs):
         c_in = attrs["check_in"]

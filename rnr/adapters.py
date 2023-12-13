@@ -236,7 +236,6 @@ class RNRRoomsAdapter:
                 "error": True
             }
 
-        total_cost = data.get("total")
         property_id = payload.get("property_id")
         price_check_payload = {
             "search_id": search_id,
@@ -255,30 +254,29 @@ class RNRRoomsAdapter:
                 "error": True
             }
             return resp_data
-
-        # has_available_balance = self.is_balance_available(total_cost)
-        # if not has_available_balance:
-        #     resp_data = {
-        #         "api_data": { 
-        #             "validation": "Failed",
-        #             "price": "Insufficient Balance",
-        #             "message": "Insufficient Balance",
-        #         },
-        #         "success": False,
-        #         "error": True
-        #     }
-        #     return resp_data
-        # breakpoint()
-
         
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/hold/"
         payload["search_id"] = search_id
         user = payload["user"]
         payload = self.get_payload_for_reservation_hold(payload)
+        guest_name = payload.get("guest_name")
+        guest_email = payload.get("guest_email")
+        guest_mobile_no = payload.get("guest_mobile_no")
+        guest_special_request = payload.get("guest_special_request")
+        guest_address = payload.get("guest_address")
         data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
+
         if data.get("success") == True:
             api_data = data.get("api_data")
-            self.insert_reservation_to_db(api_data, property_id=property_id, user=user)
+            wallet_balance = float(self.get_wallet_balance())
+            total_rate = float(data["api_data"]["data"]["grand_total_rate"])
+            if wallet_balance < total_rate:
+                error_msg = "We are having some trouble please retry after some time"
+                return self.make_error({"error_note": error_msg})
+
+            self.insert_reservation_to_db(api_data, property_id=property_id, user=user, 
+                guest_name=guest_name, guest_email=guest_email, guest_mobile_no=guest_mobile_no, 
+                guest_special_request=guest_special_request, guest_address=guest_address)
 
         return data
 
@@ -319,35 +317,19 @@ class RNRRoomsAdapter:
     def rnr_confirm_reservation(self, reservation_id, mer_txid=None):
         if mer_txid is None:
             return self.make_error(["provide merchant transaction id"])
-        
-        query = ""
-        query_seperator = "?"
-        data = {
-            "store_id": settings.AAMARPAY_STORE_ID,
-            "signature_key": settings.AAMARPAY_SIGNATURE_KEY,
-            "type": "json",
-            "request_id": mer_txid
-        }
-        for i in data.keys():
-            val = data[i]
-            query += query_seperator
-            query += f"{i}={val}"
-            query_seperator = "&"
 
-        url = f"{settings.AAMARPAY_DEV_URL}/api/v1/trxcheck/request.php{query}"
-        r = requests.get(url)
-        data = r.json()
-        ap_status_code = data.get("status_code", None)
-        if ap_status_code is None:
-            return self.make_error(["Invalid merchant transaction id provided"])
+        ap_adapter = AamarpayPgAdapter()
+        aamarpay_data = ap_adapter.verify_transaction(mer_txid, reservation_id)
+        if aamarpay_data.get("verified") == False:
+            return self.make_error(aamarpay_data["error_msg"])
 
-        if int(ap_status_code) != 2:
-            return self.make_error(["Payment not successfull"])   
-        
-        pg_txid = data.get("pg_txid")
-            
+        pg_txid = aamarpay_data["data"].get("pg_txid")        
+
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
+        if data.get("success") == False:
+            return self.make_error(data["api_data"])
+        
         transaction_code = data.get("api_data").get("data")["payment"]["transaction_code"]
         self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code, 
                                        mer_txid=mer_txid, pg_txid=pg_txid)
@@ -364,8 +346,13 @@ class RNRRoomsAdapter:
             "property_id": data.get("property_id", kwargs.get("property_id", None)),
             "user": data.get("user", kwargs.get("user", None)),
             "currency": data.get("currency"),
+            "guest_name": data.get("guest_name", kwargs.get("guest_name")),
+            "guest_email": data.get("guest_email", kwargs.get("guest_email")),
+            "guest_mobile_no": data.get("guest_mobile_no", kwargs.get("guest_mobile_no")),
+            "guest_address": data.get("guest_address", kwargs.get("guest_address")),
+            "guest_special_request": data.get("guest_special_request", kwargs.get("guest_special_request")),
         }
-
+        
         obj = RNRRoomReservation.objects.create(**reservation_hold_data)    
         return obj
     
@@ -450,11 +437,12 @@ class AamarpayPgAdapter:
         if pg_status_code is None:
             return {"verified": False, "data": data, "error_msg": "invalid request id or store id"}
 
-        if pg_status_code != 2:
+        if int(pg_status_code) != 2:
             return {"verified": False, "data": data, "error_msg": "payment not successfull"}
         
-        pg_meta_reservation_id = data.get("opt_c")
-        if pg_meta_reservation_id is None:
+        pg_meta_reservation_id = data.get("opt_a")
+        
+        if (pg_meta_reservation_id is None) or (pg_meta_reservation_id == ""):
             return {"verified": False, "data": data, "error_msg": "Reservation id not provided"}
         
         if reservation_id != pg_meta_reservation_id:

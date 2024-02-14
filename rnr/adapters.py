@@ -325,22 +325,22 @@ class RNRRoomsAdapter:
         if mer_txid is None:
             return self.make_error(["provide merchant transaction id"])
 
-        ap_adapter = AamarpayPgAdapter()
-        aamarpay_data = ap_adapter.verify_transaction(mer_txid, reservation_id)
-        if aamarpay_data.get("verified") == False:
-            return self.make_error(aamarpay_data["error_msg"])
+        # ap_adapter = AamarpayPgAdapter()
+        # aamarpay_data = ap_adapter.verify_transaction(mer_txid, reservation_id)
+        """if aamarpay_data.get("verified") == False:
+            return self.make_error(aamarpay_data["error_msg"])"""
 
-        pg_txid = aamarpay_data["data"].get("pg_txid")
+        # pg_txid = aamarpay_data["data"].get("pg_txid")
 
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
         if data.get("success") == False:
             return self.make_error(data["api_data"])
 
-        transaction_code = data.get("api_data").get(
-            "data")["payment"]["transaction_code"]
-        self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code,
-                                       mer_txid=mer_txid, pg_txid=pg_txid)
+        """transaction_code = data.get("api_data").get(
+            "data")["payment"]["transaction_code"]"""
+        """self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code,
+                                       mer_txid=mer_txid, pg_txid=pg_txid)"""
         return data
 
     def insert_reservation_to_db(self, data: dict, **kwargs):

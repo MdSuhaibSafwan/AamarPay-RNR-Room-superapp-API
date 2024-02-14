@@ -1,5 +1,27 @@
 from django.contrib import admin
-from .models import RNRAccessToken, RNRRoomReservation, RNRRoomReservationRefund
+from .models import (
+    RNRAccessToken,
+    RNRRoomReservation,
+    RNRRoomReservationRefund,
+    UserRoomPurchaseHistory,
+    UserRoomPurchaseConfirmResponseLog
+)
+
+
+@admin.register(UserRoomPurchaseHistory)
+class UserRoomPurchaseHistoryAdmin(admin.ModelAdmin):
+    list_display = [
+        'pk'] + [
+        field.name for field in UserRoomPurchaseHistory._meta.get_fields()
+    ]
+
+
+@admin.register(UserRoomPurchaseConfirmResponseLog)
+class UserRoomPurchaseConfirmResponseLogAdmin(admin.ModelAdmin):
+    list_display = [
+        'pk'] + [
+        field.name for field in UserRoomPurchaseConfirmResponseLog._meta.get_fields()
+    ]
 
 
 class RNRAccessTokenAdmin(admin.ModelAdmin):

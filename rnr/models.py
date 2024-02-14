@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from payment.models import PGPaymentRequestLog
+from payment.models import UserTransaction
+
 User = get_user_model()
 
 
@@ -149,3 +151,46 @@ class UserRoomPurchaseHistory(models.Model):
         """
         self.purchase_status = self.PurchaseStatus.SUCCESSFUL
         self.save()
+
+
+class UserRoomPurchaseConfirmResponseLogManager(models.Manager):
+    def create(self, *args, **kwargs):
+        model_field_names = [field.name for field in self.model._meta.fields]
+        valid_kwargs = {key: value for key,
+                        value in kwargs.items() if key in model_field_names}
+        activate_package_response_log = super(UserRoomPurchaseConfirmResponseLogManager, self).create(
+            **valid_kwargs
+        )
+        return activate_package_response_log
+
+
+class UserRoomPurchaseConfirmResponseLog(models.Model):
+    user_transaction = models.OneToOneField(
+        to=UserTransaction,
+        on_delete=models.RESTRICT,
+        related_name=_('room_purchase_res_user_transaction'),
+        verbose_name=_('user transaction'),
+        unique=True,
+        blank=False,
+        null=False,
+        primary_key=True,
+        help_text=_(
+            'the user transaction from which the response was generated'
+        ),
+        error_messages={
+            'null': _('user transaction must be provided'),
+            'unique': _('user transaction instance must be unique')
+        }
+    )
+
+    api_response = models.JSONField(
+        verbose_name=_('activate package api response data'),
+        null=True,
+        blank=False,
+        help_text=_("activate package api response data"),
+        error_messages={
+            'blank': _('activate package api response data must be provided')
+        }
+    )
+
+    objects = UserRoomPurchaseConfirmResponseLogManager()

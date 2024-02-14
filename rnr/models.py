@@ -3,15 +3,18 @@ from django.db import models
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
-
+from django.utils.translation import gettext_lazy as _
+from payment.models import PGPaymentRequestLog
 User = get_user_model()
+
 
 def uuid_without_dash():
     return uuid.uuid4().hex
 
 
 class RNRAccessToken(models.Model):
-    id = models.UUIDField(primary_key=True, unique=True, editable=False, default=uuid_without_dash)
+    id = models.UUIDField(primary_key=True, unique=True,
+                          editable=False, default=uuid_without_dash)
     # rnr_refresh_token = models.ForeignKey(RNRRefreshToken, on_delete=models.CASCADE)
     token = models.CharField(max_length=300, unique=True)
     token_type = models.CharField(max_length=100, null=True)
@@ -21,7 +24,7 @@ class RNRAccessToken(models.Model):
 
     def __str__(self):
         return f"< Access-Token {self.token}>"
-    
+
     def has_expired(self):
         if self.expired:
             return self.expired
@@ -49,7 +52,7 @@ class RNRRoomReservation(models.Model):
     guest_mobile_no = models.CharField(max_length=50, null=True)
     guest_address = models.CharField(max_length=500, null=True)
     guest_special_request = models.CharField(max_length=500, null=True)
-    
+
     date_created = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
 
@@ -58,7 +61,8 @@ class RNRRoomReservation(models.Model):
 
 
 class RNRRoomReservationRefund(models.Model):
-    reservation = models.OneToOneField(RNRRoomReservation, on_delete=models.CASCADE, )
+    reservation = models.OneToOneField(
+        RNRRoomReservation, on_delete=models.CASCADE, )
     refunded = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     last_updated = models.DateTimeField(auto_now=True)
@@ -66,3 +70,82 @@ class RNRRoomReservationRefund(models.Model):
     def __str__(self):
         return str(self.reservation.reservation_id)
 
+
+class UserRoomPurchaseHistoryManager(models.Manager):
+    def create(self, *args, **kwargs):
+        model_field_names = [field.name for field in self.model._meta.fields]
+        valid_kwargs = {key: value for key,
+                        value in kwargs.items() if key in model_field_names}
+        subscription_purchase_history = super(UserRoomPurchaseHistoryManager, self).create(
+            **valid_kwargs
+        )
+        return subscription_purchase_history
+
+
+class UserRoomPurchaseHistory(models.Model):
+    class PurchaseStatus(models.TextChoices):
+        SUCCESSFUL = "SUCC", _('Successful')
+        FAILED = "FAIL", _('Failed')
+
+    pg_payment_request_log = models.OneToOneField(
+        to=PGPaymentRequestLog,
+        on_delete=models.RESTRICT,
+        related_name=_('purchase_history_pg_payment_request'),
+        verbose_name=_('pg payment request'),
+        unique=True,
+        blank=False,
+        null=False,
+        primary_key=True,
+        help_text=_(
+            'the pg payment request from which the purchase history was generated'
+        ),
+        error_messages={
+            'null': _('the payment request must be provided'),
+            'unique': _('the request instance must be unique')
+        }
+    )
+    reservation_id = models.CharField(
+        max_length=200,
+        null=False,
+        blank=False,
+        help_text=_(
+            "The Rnr room reservation id that is purchased by this user"
+        ),
+        error_messages={
+            'null': _("The Rnr room reservation id cannot be null")
+        },
+        verbose_name=_('The Rnr room reservation id'),
+    )
+    purchase_status = models.CharField(
+        max_length=5,
+        verbose_name=_('purchase status'),
+        null=False,
+        blank=False,
+        default=PurchaseStatus.FAILED,
+        choices=PurchaseStatus.choices,
+        help_text=_(
+            'The purchase status of the package'),
+        error_messages={
+            'null': _('purchase status cannot be null')
+        }
+    )
+    purchase_timestamp = models.DateTimeField(
+        verbose_name=_('purchase at'),
+        auto_now_add=True,
+        help_text=_("The timestamp when the purchase was made"),
+    )
+
+    objects = UserRoomPurchaseHistoryManager()
+
+    class Meta:
+        ordering = ['-purchase_timestamp']
+        verbose_name = _('User Room Purchase History')
+        verbose_name_plural = _('User Room Purchase Histories')
+        db_table_comment = "User Room Purchase History"
+
+    def mark_purchase_successful(self):
+        """
+        Method to mark the purchase status as successful.
+        """
+        self.purchase_status = self.PurchaseStatus.SUCCESSFUL
+        self.save()

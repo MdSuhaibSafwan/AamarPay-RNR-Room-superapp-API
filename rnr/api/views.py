@@ -2,9 +2,9 @@ import requests
 from rest_framework.views import APIView
 from rest_framework.generics import CreateAPIView, ListAPIView
 from .serializers import (RNRSearchDestinationSerializer, RNRPropertySearchSerializer,
-            RNRPropertyRoomsAvailabilitySerializer, RNRRoomReservationSerializer,
-            RNRRoomReservationConfirmSerializer, RNRRoomCompareSerializer, ReservationRefundSerializer,
-            RNRRoomCancelReservationSerializer)
+                          RNRPropertyRoomsAvailabilitySerializer, RNRRoomReservationSerializer,
+                          RNRRoomReservationConfirmSerializer, RNRRoomCompareSerializer, ReservationRefundSerializer,
+                          RNRRoomCancelReservationSerializer)
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
@@ -52,7 +52,8 @@ class RNRGetPropertyProfileAPIView(APIView):
         self.check_permissions(request=self.request)
         adapter = RNRRoomsAdapter()
         data = adapter.rnr_get_property_profile(rnr_property_id)
-        data = structure_api_data_or_send_validation_error(data, raise_exception=True)
+        data = structure_api_data_or_send_validation_error(
+            data, raise_exception=True)
         return Response(data=data, status=status.HTTP_200_OK)
 
 
@@ -117,10 +118,10 @@ class CancelReservationAPIView(APIView):
 def compare_rnr_rooms_api_view(request):
     serializer = RNRRoomCompareSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    data = serializer.make_rnr_request_with_validated_data(raise_exception=True)
+    data = serializer.make_rnr_request_with_validated_data(
+        raise_exception=True)
 
     return Response(data, status=status.HTTP_200_OK)
-
 
 
 @api_view(http_method_names=["GET", ])

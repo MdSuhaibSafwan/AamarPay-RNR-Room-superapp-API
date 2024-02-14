@@ -30,9 +30,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rnr.apps.RNRConfig',
+    'payment.apps.PaymentConfig',
 
     'rest_framework',
     'rest_framework.authtoken',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -95,6 +97,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ]
@@ -129,3 +132,9 @@ AAMARPAY_DEV_URL = env("AAMARPAY_DEV_URL")
 AAMARPAY_STORE_ID = env("AAMARPAY_STORE_ID")
 AAMARPAY_SIGNATURE_KEY = env("AAMARPAY_SIGNATURE_KEY")
 
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'RnR Room',
+    'DESCRIPTION': 'RnR Room',
+    'VERSION': '1.0.0',
+}

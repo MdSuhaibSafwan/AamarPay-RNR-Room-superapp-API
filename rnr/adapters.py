@@ -11,36 +11,36 @@ class RNRRoomsAdapter:
     def __init__(self):
         self.access_token = self.get_authentication_token()
 
-    def get_authentication_url(self):   
+    def get_authentication_url(self):
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/identity/token/grant"
         return url
-    
-    def get_authentication_token(self, access_token: RNRAccessToken=None, make_new=False):
+
+    def get_authentication_token(self, access_token: RNRAccessToken = None, make_new=False):
         if make_new:
             obj = self.request_rnr_access_token()
             self.access_token = obj
             return self.access_token
-        
+
         if not access_token:
             qs = RNRAccessToken.objects.filter(expired=False)
             if not qs.exists():
                 self.access_token = self.request_rnr_access_token()
                 return self.access_token
-            
+
             obj = qs.get()
             if obj.has_expired():
                 obj = self.request_rnr_access_token()
-                
+
             self.access_token = obj
             return obj
-        
+
         if access_token.has_expired():
             self.access_token = self.request_rnr_access_token()
             return self.access_token
 
         self.access_token = access_token
         return self.access_token
-    
+
     def request_rnr_access_token(self):
         headers = self.get_headers()
         payload = self.get_authentication_payload()
@@ -52,12 +52,12 @@ class RNRRoomsAdapter:
         r = requests.post(url, data=json.dumps(payload), headers=headers)
         if r.status_code != 200:
             raise ValueError(r.text)
-        
+
         data = r.json()["data"]
         token_obj = self.insert_access_token_to_db(data)
         self.access_token = token_obj
         return token_obj
-    
+
     def insert_access_token_to_db(self, data):
         token = data.get("token")
         token_type = data.get("token_type")
@@ -69,7 +69,7 @@ class RNRRoomsAdapter:
         except IntegrityError as e:
             print(e)
             return None
-        
+
         return obj
 
     def get_headers(self):
@@ -81,7 +81,7 @@ class RNRRoomsAdapter:
         }
 
         return headers
-    
+
     def get_authentication_payload(self):
         payload = {
             "username": settings.RNR_USERNAME,
@@ -89,10 +89,11 @@ class RNRRoomsAdapter:
         }
 
         return payload
-    
+
     def get_total_headers(self):
         headers = self.get_headers()
-        authentication_token_obj = self.get_authentication_token(self.access_token)
+        authentication_token_obj = self.get_authentication_token(
+            self.access_token)
         headers["Authorization"] = authentication_token_obj.token
         return headers
 
@@ -105,14 +106,14 @@ class RNRRoomsAdapter:
                 "error": False,
                 "api_data": r.json()
             }
-        
+
         if r.status_code == 401:
             print("Un authorized")
             self.get_authentication_token(make_new=True)
             return self.request_a_url_and_get_data(url, method, **kwargs)
-        
+
         return self.make_error(r.json())
-    
+
     def make_error(self, json_data):
         data = {
             "success": False,
@@ -120,7 +121,7 @@ class RNRRoomsAdapter:
             "api_data": json_data
         }
         return data
-    
+
     def rnr_check_available_property_rooms(self, data):
         query = ""
         query_seperator = "?"
@@ -129,7 +130,7 @@ class RNRRoomsAdapter:
             query += query_seperator
             query += f"{i}={val}"
             query_seperator = "&"
-        
+
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/property/rooms/{query}"
         data = self.request_a_url_and_get_data(url, method="get")
         return data
@@ -156,8 +157,8 @@ class RNRRoomsAdapter:
                 if each_data.get("destination_type") == "property":
                     print("Counting", counter)
                     counter_lst.append(counter)
-                
-                counter += 1   
+
+                counter += 1
 
             counter_lst.reverse()
             for i in counter_lst:
@@ -167,7 +168,7 @@ class RNRRoomsAdapter:
                     print(e)
 
         return data
-    
+
     def rnr_get_property_profile(self, property_id):
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/property-profile/{property_id}/"
         data = self.request_a_url_and_get_data(url, "get")
@@ -183,7 +184,7 @@ class RNRRoomsAdapter:
             query += query_seperator
             query += f"{i}={val}"
             query_seperator = "&"
-        
+
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/properties{query}"
         data = self.request_a_url_and_get_data(url, method="get")
         return data
@@ -191,7 +192,8 @@ class RNRRoomsAdapter:
     def rnr_price_check(self, payload):
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/search/property/rooms/rate-check/"
         # print("price payload ", payload)
-        data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
+        data = self.request_a_url_and_get_data(
+            url, method="post", data=json.dumps(payload))
         # print("Resp data ", data)
         return data
 
@@ -213,7 +215,8 @@ class RNRRoomsAdapter:
             "check_out": payload.get("check_out"),
             "property_id": payload.get("property_id"),
         }
-        available_room_data = self.rnr_check_available_property_rooms(property_rooms_availability_data)
+        available_room_data = self.rnr_check_available_property_rooms(
+            property_rooms_availability_data)
         if available_room_data.get("success") != True:
             resp_data = {
                 "api_data": available_room_data["api_data"],
@@ -227,7 +230,8 @@ class RNRRoomsAdapter:
         search_id = available_room_data["search_id"]
         rooms_to_book_list = payload.get("rooms")
 
-        is_valid, data = self.validate_room_to_book_with_available_rooms(rooms_to_book_list, available_room_list)
+        is_valid, data = self.validate_room_to_book_with_available_rooms(
+            rooms_to_book_list, available_room_list)
         if not is_valid:
             resp_data = {
                 "api_data": data,
@@ -245,7 +249,7 @@ class RNRRoomsAdapter:
         is_valid = self.rnr_validate_price_check(price_check_payload)
         if not is_valid:
             resp_data = {
-                "api_data": { 
+                "api_data": {
                     "validation": "Failed",
                     "rooms": "not available",
                     "message": "room not available",
@@ -254,7 +258,7 @@ class RNRRoomsAdapter:
                 "error": True
             }
             return resp_data
-        
+
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/hold/"
         payload["search_id"] = search_id
         user = payload["user"]
@@ -264,7 +268,8 @@ class RNRRoomsAdapter:
         guest_mobile_no = payload.get("guest_mobile_no")
         guest_special_request = payload.get("guest_special_request")
         guest_address = payload.get("guest_address")
-        data = self.request_a_url_and_get_data(url, method="post", data=json.dumps(payload))
+        data = self.request_a_url_and_get_data(
+            url, method="post", data=json.dumps(payload))
 
         if data.get("success") == True:
             api_data = data.get("api_data")
@@ -274,14 +279,15 @@ class RNRRoomsAdapter:
                 error_msg = "We are having some trouble please retry after some time"
                 return self.make_error({"error_note": error_msg})
 
-            self.insert_reservation_to_db(api_data, property_id=property_id, user=user, 
-                guest_name=guest_name, guest_email=guest_email, guest_mobile_no=guest_mobile_no, 
-                guest_special_request=guest_special_request, guest_address=guest_address)
+            self.insert_reservation_to_db(api_data, property_id=property_id, user=user,
+                                          guest_name=guest_name, guest_email=guest_email, guest_mobile_no=guest_mobile_no,
+                                          guest_special_request=guest_special_request, guest_address=guest_address)
 
         return data
 
     def get_payload_for_reservation_hold(self, payload):
-        del payload["check_in"]; del payload["check_out"]
+        del payload["check_in"]
+        del payload["check_out"]
         del payload["user"]
         payload["rooms_details"] = payload["rooms"]
         del payload["rooms"]
@@ -300,7 +306,8 @@ class RNRRoomsAdapter:
             for j_room in available_room_list:
                 if i_room["id"] == j_room["id"]:
                     found_room = True
-                    total_cost += self.find_total_cost_of_room(j_room['pricing']["guest"]["per_night"])
+                    total_cost += self.find_total_cost_of_room(
+                        j_room['pricing']["guest"]["per_night"])
                     break
 
             if not found_room:
@@ -323,15 +330,16 @@ class RNRRoomsAdapter:
         if aamarpay_data.get("verified") == False:
             return self.make_error(aamarpay_data["error_msg"])
 
-        pg_txid = aamarpay_data["data"].get("pg_txid")        
+        pg_txid = aamarpay_data["data"].get("pg_txid")
 
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/lodging/reservation/confirm/{reservation_id}/"
         data = self.request_a_url_and_get_data(url, method="patch")
         if data.get("success") == False:
             return self.make_error(data["api_data"])
-        
-        transaction_code = data.get("api_data").get("data")["payment"]["transaction_code"]
-        self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code, 
+
+        transaction_code = data.get("api_data").get(
+            "data")["payment"]["transaction_code"]
+        self.confirm_reservation_in_db(reservation_id=reservation_id, transaction_code=transaction_code,
                                        mer_txid=mer_txid, pg_txid=pg_txid)
         return data
 
@@ -352,21 +360,23 @@ class RNRRoomsAdapter:
             "guest_address": data.get("guest_address", kwargs.get("guest_address")),
             "guest_special_request": data.get("guest_special_request", kwargs.get("guest_special_request")),
         }
-        
-        obj = RNRRoomReservation.objects.create(**reservation_hold_data)    
+
+        obj = RNRRoomReservation.objects.create(**reservation_hold_data)
         return obj
-    
-    def confirm_reservation_in_db(self, data: dict={}, **kwargs):
-        reservation_id = data.get("reservation_id", kwargs.get("reservation_id", None))
-        transaction_code = data.get("transaction_code", kwargs.get("transaction_code", None))
+
+    def confirm_reservation_in_db(self, data: dict = {}, **kwargs):
+        reservation_id = data.get(
+            "reservation_id", kwargs.get("reservation_id", None))
+        transaction_code = data.get(
+            "transaction_code", kwargs.get("transaction_code", None))
         pg_txid = data.get("pg_txid", kwargs.get("pg_txid", None))
         mer_txid = data.get("mer_txid", kwargs.get("mer_txid", None))
-    
+
         try:
             obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
         except ObjectDoesNotExist:
             return None
-        
+
         obj.is_active = True
         obj.rnr_transaction_code = transaction_code
         obj.pg_txid = pg_txid
@@ -382,13 +392,15 @@ class RNRRoomsAdapter:
             return data
 
         try:
-            reservation_obj = RNRRoomReservation.objects.get(reservation_id=reservation_id)
+            reservation_obj = RNRRoomReservation.objects.get(
+                reservation_id=reservation_id)
         except ObjectDoesNotExist:
             return data
 
-        refund_obj, created = RNRRoomReservationRefund.objects.get_or_create(reservation=reservation_obj)
+        refund_obj, created = RNRRoomReservationRefund.objects.get_or_create(
+            reservation=reservation_obj)
         return data
-    
+
     def check_wallet_balance(self):
         url = f"{settings.RNR_BASE_URL}/api-b2b/v1/wallet/balance/"
         data = self.request_a_url_and_get_data(url, method="get")
@@ -419,7 +431,7 @@ class AamarpayPgAdapter:
         }
         query = ""
         query_seperator = "?"
-        
+
         for i in url_params.keys():
             val = url_params[i]
             query += query_seperator
@@ -429,7 +441,7 @@ class AamarpayPgAdapter:
         url = f"{settings.AAMARPAY_DEV_URL}/api/v1/trxcheck/request.php{query}"
         r = requests.get(url, )
         return r.json()
-    
+
     def verify_transaction(self, mer_txid, reservation_id):
         data = self.search_transaction(mer_txid)
         pg_status_code = data.get("status_code", None)
@@ -438,19 +450,17 @@ class AamarpayPgAdapter:
 
         if int(pg_status_code) != 2:
             return {"verified": False, "data": data, "error_msg": "payment not successfull"}
-        
+
         opt_a = json.loads(data.get("opt_a"))
         if isinstance(opt_a, dict):
             pg_meta_reservation_id = opt_a.get("reservation_id", None)
         else:
             pg_meta_reservation_id = opt_a
-        
+
         if (pg_meta_reservation_id is None) or (pg_meta_reservation_id == ""):
             return {"verified": False, "data": data, "error_msg": "Reservation id not provided"}
-        
+
         if int(reservation_id) != pg_meta_reservation_id:
             return {"verified": False, "data": data, "error_msg": "Reservation id provided does not match the pg meta reservation id"}
 
         return {"verified": True, "data": data}
-
-

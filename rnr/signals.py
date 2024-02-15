@@ -29,7 +29,8 @@ def make_request_to_rnr_room_to_confirm_room_purchase(sender, instance: UserTran
         rnr_adapter = RNRRoomsAdapter()
         data = rnr_adapter.rnr_confirm_reservation(
             purchase_history_instance.reservation_id,
-            instance.payment_verification_response.pg_response.pg_payment_request.tran_id
+            instance.payment_verification_response.pg_response.pg_payment_request.tran_id,
+            instance.payment_verification_response.pg_response.pg_txnid[0]
         )
         UserRoomPurchaseConfirmResponseLog.objects.create(
             api_response=data,

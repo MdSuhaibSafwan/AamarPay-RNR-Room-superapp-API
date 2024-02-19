@@ -105,6 +105,7 @@ class RNRPropertyRoomsAvailabilitySerializer(serializers.Serializer):
 
 
 class RNRRoomReservationSerializer(serializers.Serializer):
+    user = serializers.CharField()
     check_in = serializers.DateField()
     check_out = serializers.DateField()
     property_id = serializers.IntegerField()
@@ -119,7 +120,7 @@ class RNRRoomReservationSerializer(serializers.Serializer):
     def request_to_rnr_api(self):
         rnr_adapter = RNRRoomsAdapter()  # initialized rnr adapter
         # getting current authenticated user from request
-        self.validated_data["user"] = self.context.get("request").user
+        # self.validated_data["user"] = self.context.get("request").user
         # reserving rooms from validated data
         data = rnr_adapter.rnr_reserve_rooms(self.validated_data)
         self.add_room_details_to_reservation(data)

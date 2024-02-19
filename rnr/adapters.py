@@ -278,7 +278,6 @@ class RNRRoomsAdapter:
             if wallet_balance < total_rate:
                 error_msg = "We are having some trouble please retry after some time"
                 return self.make_error({"error_note": error_msg})
-
             self.insert_reservation_to_db(api_data, property_id=property_id, user=user,
                                           guest_name=guest_name, guest_email=guest_email, guest_mobile_no=guest_mobile_no,
                                           guest_special_request=guest_special_request, guest_address=guest_address)
@@ -352,7 +351,6 @@ class RNRRoomsAdapter:
             "guest_address": data.get("guest_address", kwargs.get("guest_address")),
             "guest_special_request": data.get("guest_special_request", kwargs.get("guest_special_request")),
         }
-
         obj = RNRRoomReservation.objects.create(**reservation_hold_data)
         return obj
 

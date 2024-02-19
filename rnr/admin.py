@@ -29,7 +29,10 @@ class RNRAccessTokenAdmin(admin.ModelAdmin):
 
 
 class RNRRoomReservationAdmin(admin.ModelAdmin):
-    list_display = ["reservation_id", "property_id", "is_active"]
+    list_display = [
+        'pk'] + [
+        field.name for field in RNRRoomReservation._meta.get_fields()
+    ]
 
 
 class RNRRoomReservationRefundAdmin(admin.ModelAdmin):

@@ -75,10 +75,10 @@ class PaymentGatewayPaymentManager:
     @staticmethod
     def pg_payment_initiate(request, **kwargs):
         if request.is_secure():
+            base_url = request.build_absolute_uri('/').rstrip('/')
+        else:
             base_url = request.build_absolute_uri(
                 '/').rstrip('/').replace('http://', 'https://')
-        else:
-            base_url = request.build_absolute_uri('/').rstrip('/')
 
         PaymentGatewayPaymentManager.payload.update({
             'opt_a': kwargs.get('user_id'),

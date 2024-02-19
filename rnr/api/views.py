@@ -127,8 +127,7 @@ def compare_rnr_rooms_api_view(request):
 @api_view(http_method_names=["GET", ])
 @permission_classes([IsAuthenticated, ])
 @renderer_classes([RNRAPIJSONRenderer, ])
-def user_reserve_rooms_history_api_view(request):
-    user = request.user
+def user_reserve_rooms_history_api_view(request, user):
     qs = RNRRoomReservation.objects.filter(user=user).order_by("-date_created")
     serializer = RNRRoomReservationSerializer(qs, many=True)
     data = serializer.data
